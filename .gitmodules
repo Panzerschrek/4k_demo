@@ -1,0 +1,3 @@
+[submodule "DOSSTUB"]
+	path = DOSSTUB
+	url = https://github.com/katahiromz/DOSSTUB.git

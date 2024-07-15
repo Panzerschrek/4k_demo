@@ -7,7 +7,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED On)
 set(CMAKE_CXX_EXTENSIONS Off)
 
-
 if(MSVC)
 
 	# Disable exceptions
@@ -21,18 +20,26 @@ if(MSVC)
 
 	add_compile_options(/utf-8 /W3 /WX)
 
+	add_compile_options(/FAs) # Generate assembly to analyze
+
 	# Disable standard library and use "main" as entry point.
 	add_link_options(/NODEFAULTLIB)
 	add_link_options(/ENTRY:main)
 
 	# Merge data and code segments together.
 	add_link_options(/MERGE:.rdata=.text)
+	add_link_options(/MERGE:.pdata=.text)
+	add_link_options(/MERGE:.xdata=.text)
+
+	# use our own minimalistic Dos stub.
+	add_link_options(/STUB:${CMAKE_CURRENT_SOURCE_DIR}/DOSSTUB/DOSSTUB2.EXE)
 
 	# Manifest isn't necessary
 	add_link_options(/MANIFEST:NO)
 
 	# Reduce sections alignment
 	add_link_options(/ALIGN:16)
+	add_link_options(/FILEALIGN:16)
 
 else()
 	add_compile_options(-Werror -Wall -Wextra -Wconversion)
