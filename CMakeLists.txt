@@ -16,10 +16,23 @@ if(MSVC)
 	# Disable RTTI
 	string(REPLACE "/GR" "/GR-" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
+	# Disable stack probes
+	add_compile_options(/GS-)
+
 	add_compile_options(/utf-8 /W3 /WX)
 
+	# Disable standard library and use "main" as entry point.
 	add_link_options(/NODEFAULTLIB)
 	add_link_options(/ENTRY:main)
+
+	# Merge data and code segments together.
+	add_link_options(/MERGE:.rdata=.text)
+
+	# Manifest isn't necessary
+	add_link_options(/MANIFEST:NO)
+
+	# Reduce sections alignment
+	add_link_options(/ALIGN:16)
 
 else()
 	add_compile_options(-Werror -Wall -Wextra -Wconversion)
