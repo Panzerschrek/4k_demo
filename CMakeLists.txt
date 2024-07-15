@@ -10,13 +10,19 @@ set(CMAKE_CXX_EXTENSIONS Off)
 if(MSVC)
 
 	# Disable exceptions
-	string(REPLACE "/EHsc" "/EHs-c-" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+	string(REPLACE "/EHsc" "/EHa-s-c-" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 	# Disable RTTI
 	string(REPLACE "/GR" "/GR-" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 	# Disable stack probes
 	add_compile_options(/GS-)
+
+	# Eleminate duplicated strings.
+	add_compile_options(/GF)
+
+	# Package global data in COMDAT sections for optimization.
+	add_compile_options(/Gw)
 
 	add_compile_options(/utf-8 /W3 /WX)
 
@@ -31,6 +37,16 @@ if(MSVC)
 	add_link_options(/MERGE:.pdata=.text)
 	add_link_options(/MERGE:.xdata=.text)
 
+	# Dynamic base randomization isn't struictly necessary.
+	add_link_options(/DYNAMICBASE:NO)
+
+	# An undocumented flag.
+	add_link_options(/EMITPOGOPHASEINFO)
+
+	# Eleminate unused functions and data.
+	add_link_options(/OPT:REF)
+	add_link_options(/OPT:ICF)
+
 	# use our own minimalistic Dos stub.
 	add_link_options(/STUB:${CMAKE_CURRENT_SOURCE_DIR}/DOSSTUB/DOSSTUB2.EXE)
 
@@ -40,6 +56,13 @@ if(MSVC)
 	# Reduce sections alignment
 	add_link_options(/ALIGN:16)
 	add_link_options(/FILEALIGN:16)
+
+	if(NOT CMAKE_BUILD_DYPE STREQUAL Debug)
+		add_link_options(/RELEASE)
+	endif()
+
+	# Incremental linking isn't necessary.
+	add_link_options(/INCREMENTAL:NO)
 
 else()
 	add_compile_options(-Werror -Wall -Wextra -Wconversion)
