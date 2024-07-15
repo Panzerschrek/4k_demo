@@ -1,6 +1,6 @@
-#include <cstdio>
+#include <windows.h>
 
 int main()
 {
-	std::printf("Hello, world!\n");
+	OutputDebugStringW(L"Hello, world!\n");
 }

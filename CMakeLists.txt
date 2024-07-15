@@ -9,13 +9,23 @@ set(CMAKE_CXX_EXTENSIONS Off)
 
 
 if(MSVC)
+
+	# Disable exceptions
+	string(REPLACE "/EHsc" "/EHs-c-" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+
+	# Disable RTTI
+	string(REPLACE "/GR" "/GR-" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+
 	add_compile_options(/utf-8 /W3 /WX)
-	add_compile_options(/GR-) # no RTTI
+
+	add_link_options(/NODEFAULTLIB)
+	add_link_options(/ENTRY:main)
+
 else()
 	add_compile_options(-Werror -Wall -Wextra -Wconversion)
 	add_compile_options(-fvisibility=hidden -fvisibility-inlines-hidden)
 	add_compile_options(-fdata-sections -ffunction-sections) # simplify later gc-sections.
-	add_compile_options( -fno-rtti )
+	add_compile_options(-fno-rtti)
 
 	# Clear garbage.
 	string(APPEND CMAKE_EXE_LINKER_FLAGS_RELEASE " -s -Wl,--gc-sections")
