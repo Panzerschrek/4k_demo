@@ -1,0 +1,6 @@
+# Build directories
+build*/
+
+# VisualStudio settings
+CMakeSettings.json
+.vs/
