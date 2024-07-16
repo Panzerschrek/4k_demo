@@ -11,34 +11,41 @@ float CosPositive(const float x)
 	const float x_scaled = x / period;
 	const float z = period * (float(x_scaled) - float(int(x_scaled)));
 
-	const float z2 = z * z;
-	const float z4 = z2 * z2;
-	const float z6 = z4 * z2;
-	const float z8 = z4 * z4;
-	const float z10 = z6 * z4;
+	const float minus_z2 = -z * z;
+	float w = 1.0f;
+	float res = 1.0f;
 
-	return 1.0f - z2 / 2.0f + z4 / 24.0f - z6 / 720.0f + z8 / 40320.0f - z10 / 3628800.0f;
+	for (int32_t i = 2; i < 20; i+= 2)
+	{
+		w *= minus_z2 / float(i * (i - 1));
+		res += w;
+	}
+
+	return res;
 }
 
 float Cos(const float x)
 {
-	return CosPositive(std::abs(x));
+	if (x >= 0.0f)
+		return CosPositive(x);
+	else
+		return CosPositive(-x);
 }
 
 float Log(const float x)
 {
 	const float z = (x - 1.0f) / (x + 1.0f);
-
 	const float z2 = z * z;
-	const float z3 = z * z2;
-	const float z5 = z3 * z2;
-	const float z7 = z5 * z2;
-	const float z9 = z7 * z2;
-	const float z11 = z9 * z2;
-	const float z13 = z11 * z2;
-	const float z15 = z13 * z2;
+	float w = z;
+	float res = 0.0f;
 
-	return 2.0f * (z + z3 / 3.0f + z5 / 5.0f + z7 / 7.0f + z9 / 9.0f + z11 / 11.0f + z13 / 13.0f + z15 / 15.0f);
+	for (int32_t i = 1; i <= 13; i += 2)
+	{
+		res += w;
+		w *= z2 / float(i);
+	}
+
+	return 2.0f * res;
 }
 
 int main()
@@ -61,7 +68,7 @@ int main()
 
 		LARGE_INTEGER now;
 		QueryPerformanceCounter(&now);
-		const float time = float(uint32_t(now.QuadPart - start_ticks.QuadPart)) / float(uint32_t(ticks_per_second.QuadPart));
+		const float time = 0.25f * float(uint32_t(now.QuadPart - start_ticks.QuadPart)) / float(uint32_t(ticks_per_second.QuadPart));
 
 		using Complex = std::complex<float>;
 
@@ -72,7 +79,7 @@ int main()
 				DrawableWindow::PixelType& dst_pixel = window.GetPixels()[x + y * window.GetWidth()];
 
 				Complex num(
-					1.0f - float(x) * (3.5f / float(width )),
+					float(x) * (3.5f / float(width )) - 2.25f,
 					float(y) * (3.5f / float(height)) - 1.75f);
 		
 				float c = 1.0f;
