@@ -1,12 +1,12 @@
 #include <complex>
-#include <emmintrin.h>
+#include <utility>
 #include "window.hpp"
 
 extern "C" int _fltused = 0;
 
 float CosPositive(const float x)
 {
-	const float period = 3.1415926525f * 2.0f;
+	const float period = 3.1415926535f * 2.0f;
 
 	const float x_scaled = x / period;
 	const float z = period * (float(x_scaled) - float(int(x_scaled)));
@@ -15,7 +15,7 @@ float CosPositive(const float x)
 	float w = 1.0f;
 	float res = 1.0f;
 
-	for (int32_t i = 2; i < 20; i+= 2)
+	for (int32_t i = 2; i <= 18; i+= 2)
 	{
 		w *= minus_z2 / float(i * (i - 1));
 		res += w;
@@ -41,8 +41,8 @@ float Log(const float x)
 
 	for (int32_t i = 1; i <= 13; i += 2)
 	{
-		res += w;
-		w *= z2 / float(i);
+		res += w / float(i);
+		w *= z2;
 	}
 
 	return 2.0f * res;
@@ -50,9 +50,10 @@ float Log(const float x)
 
 int main()
 {
-	const uint32_t width = 512;
-	const uint32_t height = 512;
-	const uint32_t iterations = 96;
+	const uint32_t width = 800;
+	const uint32_t height = 600;
+	const uint32_t iterations = 128;
+	const uint32_t scale = std::min(width, height);
 
 	DrawableWindow window("4k_mandelbrot", width, height);
 
@@ -79,22 +80,19 @@ int main()
 				DrawableWindow::PixelType& dst_pixel = window.GetPixels()[x + y * window.GetWidth()];
 
 				Complex num(
-					float(x) * (3.5f / float(width )) - 2.25f,
-					float(y) * (3.5f / float(height)) - 1.75f);
+					float(x) * (2.5f / float(scale)) - 2.1f,
+					float(y) * (2.5f / float(scale)) - 1.25f);
 		
 				float c = 1.0f;
-				if(std::norm(num) <= 4.0f)
+				Complex z(0.0f, 0.0f);
+				for(uint32_t i = 0; i < iterations; ++i)
 				{
-					Complex z(0.0f, 0.0f);
-					for(uint32_t i = 0; i < iterations; ++i)
-					{
-						z = num + z * z;
-						const float d = std::norm(z);
-						if(d >= 4.0f)
-							break;
+					z = num + z * z;
+					const float d = std::norm(z);
+					if(d >= 4.0f)
+						break;
 
-						c += 4.0f - d;
-					}
+					c += 4.0f - d;
 				}
 	
 				const float color_factor = Log(c) * 0.25f;

@@ -7,9 +7,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED On)
 set(CMAKE_CXX_EXTENSIONS Off)
 
-if(MSVC)
+add_compile_definitions(NOMINMAX)
 
-	add_compile_options(/ARCH:SSE2)
+if(MSVC)
 
 	# Disable exceptions
 	string(REPLACE "/EHsc" "/EHa-s-c-" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
