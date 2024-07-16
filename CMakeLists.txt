@@ -76,3 +76,4 @@ else()
 endif()
 
 add_executable(hello_world hello_world.cpp)
+add_executable(simple_window WIN32 simple_window.cpp)
