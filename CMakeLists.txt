@@ -75,4 +75,4 @@ else()
 	string(APPEND CMAKE_SHARED_LINKER_FLAGS_RELEASE " -s -Wl,--gc-sections")
 endif()
 
-add_executable(4k_demo main.cpp)
+add_executable(hello_world hello_world.cpp)
