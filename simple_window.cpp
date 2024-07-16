@@ -12,7 +12,10 @@ int main()
 
 		for(uint32_t y= 0; y < window.GetHeight(); ++y)
 			for(uint32_t x = 0; x < window.GetWidth(); ++x)
-				window.GetPixels()[x + y * window.GetWidth()] = (x >> 2) | ((y >> 1) << 8) | (((iteration << 1) & 255) << 16);
+				window.GetPixels()[x + y * window.GetWidth()] =
+					(x * 255u / window.GetWidth()) |
+					((y * 255u / window.GetHeight()) << 8) |
+					(((iteration << 1) & 255) << 16);
 
 		window.Blit();
 
