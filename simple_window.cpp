@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <windows.h>
 
 
@@ -57,9 +58,37 @@ int main()
 			0,
 			nullptr);
 
+	// Create stuff for drawing.
+
+	const HDC hdc = GetDC(hwnd);
+
+	BITMAPINFO bitmap_info{};
+	bitmap_info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+	bitmap_info.bmiHeader.biWidth = window_width;
+	bitmap_info.bmiHeader.biHeight = -window_height;
+	bitmap_info.bmiHeader.biSizeImage = -(window_height * window_width);
+	bitmap_info.bmiHeader.biPlanes = 1;
+	bitmap_info.bmiHeader.biBitCount = 32;
+	bitmap_info.bmiHeader.biCompression = BI_RGB;
+
+	const HDC compatible_dc = CreateCompatibleDC(hdc);
+
+	using PixelType = uint32_t;
+
+	PixelType* pixels = nullptr;
+
+	const HBITMAP bitmap_handle =
+		CreateDIBSection(hdc, &bitmap_info, DIB_RGB_COLORS, reinterpret_cast<void**>(&pixels), nullptr, 0);
+
+	SelectObject(compatible_dc, bitmap_handle);
+
+	// Show the window.
+
 	ShowWindow(hwnd, SW_SHOWNORMAL);
 
 	// Main loop.
+
+	int iteration = 0;
 
 	while(true)
 	{
@@ -70,8 +99,16 @@ int main()
 			DispatchMessageA(&message);
 		}
 
+		for(uint32_t y= 0; y < uint32_t(window_height); ++y)
+			for(uint32_t x = 0; x < uint32_t(window_width); ++x)
+				pixels[x + y * uint32_t(window_width)] = (x >> 2) | ((y >> 1) << 8) | (((iteration << 1) & 255) << 16);
+
+		BitBlt(hdc, 0, 0, window_width, window_height, compatible_dc, 0, 0, SRCCOPY);
+
 		Sleep(16);
+
+		++iteration;
 	}
 
-	// Save some space - do not bother destroying window/unregister window class.
+	// Save some space - do not bother with deinitialization/clearing.
 }
