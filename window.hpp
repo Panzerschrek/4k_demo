@@ -25,8 +25,9 @@ public:
 		window_class.cbWndExtra = 0;
 		window_class.hInstance = 0;
 		window_class.hIcon = nullptr; // Use default icon.
-		window_class.hCursor = LoadCursorA(nullptr, IDC_ARROW);
-		window_class.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+		// Cursor seems to be not necessary.
+		// window_class.hCursor = LoadCursorA(nullptr, IDC_ARROW);
+		window_class.hbrBackground = nullptr; // Paint our own packground.
 		window_class.lpszMenuName = nullptr;
 		window_class.lpszClassName = window_class_name;
 		window_class.hIconSm = nullptr; // Use default icon.
@@ -35,7 +36,7 @@ public:
 
 		// Create window.
 
-		const auto window_style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_BORDER;
+		const DWORD window_style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_BORDER;
 
 		RECT rect{ 0, 0, LONG(width), LONG(height) };
 		AdjustWindowRect(&rect, window_style, false);
