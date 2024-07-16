@@ -7,6 +7,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED On)
 set(CMAKE_CXX_EXTENSIONS Off)
 
+add_compile_definitions(NOMINMAX)
+
 if(MSVC)
 
 	# Disable exceptions
@@ -90,3 +92,4 @@ endif()
 
 add_executable(hello_world hello_world.cpp)
 add_executable(simple_window WIN32 simple_window.cpp)
+add_executable(mandelbrot WIN32 mandelbrot.cpp)
