@@ -1,7 +1,6 @@
 #include <complex>
+#include <emmintrin.h>
 #include "window.hpp"
-
-#pragma comment(lib, "MSVCRT.lib")
 
 extern "C" int _fltused = 0;
 
@@ -62,7 +61,7 @@ int main()
 
 		LARGE_INTEGER now;
 		QueryPerformanceCounter(&now);
-		const float time = float(now.QuadPart - start_ticks.QuadPart) / float(ticks_per_second.QuadPart);
+		const float time = float(uint32_t(now.QuadPart - start_ticks.QuadPart)) / float(uint32_t(ticks_per_second.QuadPart));
 
 		using Complex = std::complex<float>;
 
@@ -93,14 +92,14 @@ int main()
 	
 				const float color_factor = Log(c) * 0.25f;
 
-				const uint32_t components[3]
+				const int32_t components[3]
 				{
-					uint32_t((Cos(time * 1.0f + color_factor * 7.0f) * 0.5f + 0.5f) * 254.9f),
-					uint32_t((Cos(time * 1.5f + color_factor * 8.0f) * 0.5f + 0.5f) * 254.9f),
-					uint32_t((Cos(time * 2.0f + color_factor * 9.0f) * 0.5f + 0.5f) * 254.9f),
+					int32_t((Cos(time * 1.0f + color_factor * 7.0f) * 0.5f + 0.5f) * 254.9f),
+					int32_t((Cos(time * 1.5f + color_factor * 8.0f) * 0.5f + 0.5f) * 254.9f),
+					int32_t((Cos(time * 2.0f + color_factor * 9.0f) * 0.5f + 0.5f) * 254.9f),
 				};
 
-				dst_pixel = components[0] | (components[1] << 8) | (components[2] << 16);
+				dst_pixel = DrawableWindow::PixelType(components[0] | (components[1] << 8) | (components[2] << 16));
 			}
 		}
 
