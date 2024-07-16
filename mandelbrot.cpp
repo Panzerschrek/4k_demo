@@ -44,18 +44,25 @@ float Log(const float x)
 
 int main()
 {
-	const uint32_t width = 1024;
-	const uint32_t height = 1024;
+	const uint32_t width = 512;
+	const uint32_t height = 512;
+	const uint32_t iterations = 96;
 
 	DrawableWindow window("4k_mandelbrot", width, height);
 
-	uint32_t iteration = 0;
+	LARGE_INTEGER start_ticks;
+	QueryPerformanceCounter(&start_ticks);
 
-	float time = 1.0f;
+	LARGE_INTEGER ticks_per_second;
+	QueryPerformanceFrequency(&ticks_per_second);
 
 	while(true)
 	{
 		window.ProcessMessages();
+
+		LARGE_INTEGER now;
+		QueryPerformanceCounter(&now);
+		const float time = float(now.QuadPart - start_ticks.QuadPart) / float(ticks_per_second.QuadPart);
 
 		using Complex = std::complex<float>;
 
@@ -73,7 +80,7 @@ int main()
 				if(std::norm(num) <= 4.0f)
 				{
 					Complex z(0.0f, 0.0f);
-					for(uint32_t i = 0; i < 128u; ++i)
+					for(uint32_t i = 0; i < iterations; ++i)
 					{
 						z = num + z * z;
 						const float d = std::norm(z);
@@ -98,9 +105,5 @@ int main()
 		}
 
 		window.Blit();
-
-		Sleep(16);
-
-		++iteration;
 	}
 }
