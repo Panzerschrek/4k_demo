@@ -33,14 +33,21 @@ public:
 
 		RegisterClassExA(&window_class);
 
+		// Create window.
+
+		const auto window_style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_BORDER;
+
+		RECT rect{ 0, 0, LONG(width), LONG(height) };
+		AdjustWindowRect(&rect, window_style, false);
+
 		hwnd_ =
 			CreateWindowExA(
 				0,
 				window_class_name,
 				title,
-				WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_BORDER,
+				window_style,
 				0, 0,
-				int(width_), int(height_),
+				rect.right - rect.left, rect.bottom - rect.top,
 				nullptr,
 				nullptr,
 				0,
