@@ -59,6 +59,19 @@ if(MSVC)
 
 	if(NOT CMAKE_BUILD_DYPE STREQUAL Debug)
 		add_link_options(/RELEASE)
+
+		# Use more agressive optimizations.
+		string(REPLACE "/O1" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+		string(REPLACE "/O1" "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+		string(REPLACE "/O1" "" CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL}")
+		add_compile_options("/O2")
+
+		# Use more agressive inlining.
+		string(REPLACE "/Ob1" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+		string(REPLACE "/Ob1" "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+		string(REPLACE "/Ob1" "" CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL}")
+		add_compile_options("/Ob2")
+
 	endif()
 
 	# Incremental linking isn't necessary.
