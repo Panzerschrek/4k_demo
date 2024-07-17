@@ -21,26 +21,38 @@ constexpr uint32_t g_tetris_field_height = 20;
 constexpr uint32_t g_tetris_piece_num_blocks = 4;
 constexpr uint32_t g_tetris_num_piece_types = 7;
 
-constexpr uint32_t g_cell_size = 20;
+constexpr uint32_t g_cell_size = 24;
+
+constexpr uint32_t g_border_width = 4;
+constexpr uint32_t g_inner_padding = 2;
+
+constexpr uint32_t g_window_width = g_cell_size * (g_tetris_field_width + 7) + g_border_width * 2 + g_inner_padding * 2;
+constexpr uint32_t g_window_height = g_cell_size * g_tetris_field_height + g_border_width * 2 + g_inner_padding * 2;
 
 static void DrawFieldBorders(DrawableWindow& window)
 {
-	const DrawableWindow::PixelType border_color = 0xFFFFFFFF;
+	const DrawableWindow::PixelType border_color = 0x00D0D0D0;
 
-	for(uint32_t x = 0; x < g_cell_size * g_tetris_field_width; ++x)
+	for(uint32_t x = 0; x < g_cell_size * g_tetris_field_width + g_border_width * 2 + g_inner_padding * 2; ++x)
 	{
 		const uint32_t y0 = 0;
-		const uint32_t y1 = g_cell_size * g_tetris_field_height + 2;
-		window.GetPixels()[x + y0 * window.GetWidth()] = border_color;
-		window.GetPixels()[x + y1 * window.GetWidth()] = border_color;
+		const uint32_t y1 = g_cell_size * g_tetris_field_height + g_border_width + g_inner_padding * 2;
+		for(uint32_t d = 0; d < g_border_width; ++d)
+		{
+			window.GetPixels()[x + (y0 + d) * window.GetWidth()] = border_color;
+			window.GetPixels()[x + (y1 + d) * window.GetWidth()] = border_color;
+		}
 	}
 
-	for (uint32_t y = 0; y < g_cell_size * g_tetris_field_height; ++y)
+	for (uint32_t y = 0; y < g_cell_size * g_tetris_field_height + g_border_width * 2 + g_inner_padding * 2; ++y)
 	{
 		const uint32_t x0 = 0;
-		const uint32_t x1 = g_cell_size * g_tetris_field_width + 2;
-		window.GetPixels()[x0 + y * window.GetWidth()] = border_color;
-		window.GetPixels()[x1 + y * window.GetWidth()] = border_color;
+		const uint32_t x1 = g_cell_size * g_tetris_field_width + g_border_width + g_inner_padding * 2;
+		for(uint32_t d = 0; d < g_border_width; ++d)
+		{
+			window.GetPixels()[d + x0 + y * window.GetWidth()] = border_color;
+			window.GetPixels()[d + x1 + y * window.GetWidth()] = border_color;
+		}
 	}
 }
 
@@ -49,8 +61,8 @@ static void DrawQuad(
 	const uint32_t cell_x, const uint32_t cell_y,
 	const DrawableWindow::PixelType color)
 {
-	const uint32_t x = 2 + cell_x * g_cell_size;
-	const uint32_t y = 2 + cell_y * g_cell_size;
+	const uint32_t x = g_border_width + g_inner_padding + cell_x * g_cell_size;
+	const uint32_t y = g_border_width + g_inner_padding + cell_y * g_cell_size;
 
 	for(uint32_t dy = 1; dy < g_cell_size - 1; ++dy)
 	for(uint32_t dx = 1; dx < g_cell_size - 1; ++dx)
@@ -151,12 +163,12 @@ int main()
 	const float ticks_frequency = 4.0f;
 	float prev_tick_time = 0.0f;
 
-	DrawableWindow window("4k_tetris", 640, 480, TetrisWindowProc);
+	DrawableWindow window("4k_tetris", g_window_width, g_window_height, TetrisWindowProc);
 
 	// TODO - zero field properly.
 	TetrisBlock field[g_tetris_field_width * g_tetris_field_height];
 	for (uint32_t i = 0; i < g_tetris_field_width; ++i)
-		field[i + (g_tetris_field_height - 1) * g_tetris_field_width] = TetrisBlock(i % uint32_t(g_tetris_num_piece_types + 1));
+		field[i + (g_tetris_field_height - 1) * g_tetris_field_width] = TetrisBlock::I;
 
 	std::optional<TetrisPiece> active_piece;
 	TetrisBlock next_piece_type = TetrisBlock(1 + uint32_t(start_ticks.LowPart) % g_tetris_num_piece_types);
