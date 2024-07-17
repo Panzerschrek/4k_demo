@@ -50,13 +50,14 @@ int main()
 					c += 4.0f - d;
 				}
 	
-				const float color_factor = Math::Log(c) * 0.25f;
+				const float color_factor = Math::Log(c);
 
+				constexpr float half_range = (255.0f - 0.1f) / 2.0f;
 				const int32_t components[3]
 				{
-					int32_t((Math::Cos(time * 1.0f + color_factor * 7.0f) * 0.5f + 0.5f) * 254.9f),
-					int32_t((Math::Cos(time * 1.5f + color_factor * 8.0f) * 0.5f + 0.5f) * 254.9f),
-					int32_t((Math::Cos(time * 2.0f + color_factor * 9.0f) * 0.5f + 0.5f) * 254.9f),
+					int32_t(Math::Cos(time * 1.0f + color_factor * 1.75f) * half_range + half_range),
+					int32_t(Math::Cos(time * 1.5f + color_factor * 2.0f) * half_range + half_range),
+					int32_t(Math::Cos(time * 2.0f + color_factor * 2.25f) * half_range + half_range),
 				};
 
 				dst_pixel = DrawableWindow::PixelType(components[0] | (components[1] << 8) | (components[2] << 16));
