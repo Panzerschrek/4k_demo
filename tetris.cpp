@@ -30,7 +30,7 @@ constexpr uint32_t g_window_height = g_cell_size * g_field_height + g_border_wid
 
 static void DrawFieldBorders(DrawableWindow& window)
 {
-	const DrawableWindow::PixelType border_color = 0x00D0D0D0;
+	const DrawableWindow::PixelType border_color = 0x00AAAAAA;
 
 	DrawableWindow::PixelType* const pixels = window.GetPixels();
 	const uint32_t window_width = window.GetWidth();
@@ -124,13 +124,13 @@ constexpr std::array<PieceBlocks, g_num_piece_types> g_pieces_blocks =
 constexpr std::array<DrawableWindow::PixelType, g_num_piece_types + 1> g_piece_colors =
 {
 	0x00000000,
-	0x00FF0000, // I
-	0x00F0F0F0, // J
-	0x00FF00FF, // L
-	0x000000FF, // O
-	0x0000FF00, // S
-	0x00A0A000, // T
-	0x0000FFFF, // Z
+	0x00AA0000, // I
+	0x00AAAAAA, // J
+	0x00AA00AA, // L
+	0x000000AA, // O
+	0x0000AA00, // S
+	0x00AA5500, // T
+	0x0000AAAA, // Z
 };
 
 static bool has_move_left = false;
@@ -182,7 +182,7 @@ int main()
 	DrawableWindow window("4k_tetris", g_window_width, g_window_height, TetrisWindowProc);
 
 	// Set color for texts.
-	SetTextColor(window.GetBitmapDC(), 0xFFFFFF);
+	SetTextColor(window.GetBitmapDC(), 0x00AAAAAA);
 	SetBkColor(window.GetBitmapDC(), 0x00000000);
 
 	TetrisBlock field[g_field_width * g_field_height];
