@@ -170,6 +170,7 @@ int main()
 
 	std::optional<TetrisPiece> active_piece;
 	TetrisBlock next_piece_type = TetrisBlock(1 + uint32_t(start_ticks.LowPart) % g_tetris_num_piece_types);
+	bool game_over = false;
 
 	while(true)
 	{
@@ -190,120 +191,121 @@ int main()
 			prev_tick_time = current_time;
 
 			// It's time to move active piece down.
-
-			if(active_piece == std::nullopt)
+			if (!game_over)
 			{
-				// No active piece - try to spawn new piece.
-				TetrisPiece next_active_piece;
-				next_active_piece.type = next_piece_type;
-				next_active_piece.blocks = g_tetris_pieces_blocks[uint32_t(next_active_piece.type) - uint32_t(TetrisBlock::I)];
 
-				next_piece_type = TetrisBlock(1 + uint32_t(now.LowPart) % g_tetris_num_piece_types);
-
-				bool can_move = true;
-				for(const TetrisPieceBlock& piece_block : next_active_piece.blocks)
+				if (active_piece == std::nullopt)
 				{
-					if(piece_block[1] == int32_t(g_tetris_field_height - 1))
-						can_move = false;
+					// No active piece - try to spawn new piece.
+					TetrisPiece next_active_piece;
+					next_active_piece.type = next_piece_type;
+					next_active_piece.blocks = g_tetris_pieces_blocks[uint32_t(next_active_piece.type) - uint32_t(TetrisBlock::I)];
 
-					const auto next_x = piece_block[0];
-					const auto next_y = piece_block[1] + 1;
-					if (next_x >= 0 && next_x < int32_t(g_tetris_field_width) &&
-						next_y >= 0 && next_y < int32_t(g_tetris_field_height) &&
-						field[uint32_t(next_x) + uint32_t(next_y) * g_tetris_field_width] != TetrisBlock::Empty)
-						can_move = false;
-				}
+					next_piece_type = TetrisBlock(1 + uint32_t(now.LowPart) % g_tetris_num_piece_types);
 
-				if (can_move)
-					active_piece = next_active_piece;
-				else
-				{
-					// game_over_ = true;
-				}
-			}
-			else
-			{
-				bool can_move = true;
-				for(const TetrisPieceBlock& piece_block : active_piece->blocks)
-				{
-					if(piece_block[1] == int32_t(g_tetris_field_height - 1))
-						can_move = false;
-
-					const auto next_x = piece_block[0];
-					const auto next_y = piece_block[1] + 1;
-					if (next_x >= 0 && next_x < int32_t(g_tetris_field_width) &&
-						next_y >= 0 && next_y < int32_t(g_tetris_field_height) &&
-						field[uint32_t(next_x) + uint32_t(next_y) * g_tetris_field_width] != TetrisBlock::Empty)
-						can_move = false;
-				}
-
-				if(can_move)
-				{
-					for(auto& piece_block : active_piece->blocks)
-						piece_block[1] += 1;
-				}
-				else
-				{
-					// Put piece into field.
-					for(const TetrisPieceBlock& piece_block : active_piece->blocks)
+					bool can_move = true;
+					for (const TetrisPieceBlock& piece_block : next_active_piece.blocks)
 					{
-						if (piece_block[1] < 0)
-						{
-							// HACK! prevent overflow.
-							// game_over_ = true;
-							break;
-						}
-						field[uint32_t(piece_block[0]) + uint32_t(piece_block[1]) * g_tetris_field_width] = active_piece->type;
+						if (piece_block[1] == int32_t(g_tetris_field_height - 1))
+							can_move = false;
+
+						const auto next_x = piece_block[0];
+						const auto next_y = piece_block[1] + 1;
+						if (next_x >= 0 && next_x < int32_t(g_tetris_field_width) &&
+							next_y >= 0 && next_y < int32_t(g_tetris_field_height) &&
+							field[uint32_t(next_x) + uint32_t(next_y) * g_tetris_field_width] != TetrisBlock::Empty)
+							can_move = false;
 					}
 
-					active_piece = std::nullopt;
-
-					// Remove lines.
-					uint32_t lines_removed = 0;
-					for(uint32_t y = g_tetris_field_height - 1;;)
+					if (can_move)
+						active_piece = next_active_piece;
+					else
+						game_over = true;
+				}
+				else
+				{
+					bool can_move = true;
+					for (const TetrisPieceBlock& piece_block : active_piece->blocks)
 					{
-						bool line_is_full = true;
-						for (uint32_t x = 0; x < g_tetris_field_width; ++x)
-							line_is_full &= field[x + y * g_tetris_field_width] != TetrisBlock::Empty;
+						if (piece_block[1] == int32_t(g_tetris_field_height - 1))
+							can_move = false;
 
-						if(line_is_full)
+						const auto next_x = piece_block[0];
+						const auto next_y = piece_block[1] + 1;
+						if (next_x >= 0 && next_x < int32_t(g_tetris_field_width) &&
+							next_y >= 0 && next_y < int32_t(g_tetris_field_height) &&
+							field[uint32_t(next_x) + uint32_t(next_y) * g_tetris_field_width] != TetrisBlock::Empty)
+							can_move = false;
+					}
+
+					if (can_move)
+					{
+						for (auto& piece_block : active_piece->blocks)
+							piece_block[1] += 1;
+					}
+					else
+					{
+						// Put piece into field.
+						for (const TetrisPieceBlock& piece_block : active_piece->blocks)
 						{
-							++lines_removed;
-
-							// Remove this line.
-							for (uint32_t dst_y = y; ; --dst_y)
+							if (piece_block[1] < 0)
 							{
-								if (dst_y == 0)
-								{
-									for (uint32_t x = 0; x < g_tetris_field_width; ++x)
-										field[x + dst_y * g_tetris_field_width] = TetrisBlock::Empty;
-								}
-								else
-								{
-									const uint32_t src_y = dst_y - 1;
-
-									for(uint32_t x = 0; x < g_tetris_field_width; ++x)
-									{
-										field[x + dst_y * g_tetris_field_width] = field[x + src_y * g_tetris_field_width];
-										field[x + src_y * g_tetris_field_width] = TetrisBlock::Empty;
-									}
-								}
-
-								if (dst_y == 0)
-									break;
-							} // Shift lines after removal.
+								// HACK! prevent overflow.
+								game_over = true;
+								break;
+							}
+							field[uint32_t(piece_block[0]) + uint32_t(piece_block[1]) * g_tetris_field_width] = active_piece->type;
 						}
-						else if(y > 0)
-							--y;
-						else
-							break;
+
+						active_piece = std::nullopt;
+
+						// Remove lines.
+						uint32_t lines_removed = 0;
+						for (uint32_t y = g_tetris_field_height - 1;;)
+						{
+							bool line_is_full = true;
+							for (uint32_t x = 0; x < g_tetris_field_width; ++x)
+								line_is_full &= field[x + y * g_tetris_field_width] != TetrisBlock::Empty;
+
+							if (line_is_full)
+							{
+								++lines_removed;
+
+								// Remove this line.
+								for (uint32_t dst_y = y; ; --dst_y)
+								{
+									if (dst_y == 0)
+									{
+										for (uint32_t x = 0; x < g_tetris_field_width; ++x)
+											field[x + dst_y * g_tetris_field_width] = TetrisBlock::Empty;
+									}
+									else
+									{
+										const uint32_t src_y = dst_y - 1;
+
+										for (uint32_t x = 0; x < g_tetris_field_width; ++x)
+										{
+											field[x + dst_y * g_tetris_field_width] = field[x + src_y * g_tetris_field_width];
+											field[x + src_y * g_tetris_field_width] = TetrisBlock::Empty;
+										}
+									}
+
+									if (dst_y == 0)
+										break;
+								} // Shift lines after removal.
+							}
+							else if (y > 0)
+								--y;
+							else
+								break;
+						}
 					}
 				}
 			}
 		}
 
 		// Process logic.
-		if(active_piece != std::nullopt)
+		if(!game_over && active_piece != std::nullopt)
 		{
 			const auto try_side_move_piece =
 				[&](const int32_t delta)
@@ -394,8 +396,9 @@ int main()
 			}
 		}
 
-		for(const auto& piece_block : g_tetris_pieces_blocks[uint32_t(next_piece_type) - 1])
-			DrawQuad(window, piece_block[0] + g_tetris_field_width - 3, piece_block[1] + 5, g_piece_colors[size_t(next_piece_type) - 1]);
+		if(!game_over)
+			for(const auto& piece_block : g_tetris_pieces_blocks[uint32_t(next_piece_type) - 1])
+				DrawQuad(window, piece_block[0] + g_tetris_field_width - 3, piece_block[1] + 5, g_piece_colors[size_t(next_piece_type) - 1]);
 
 		window.Blit();
 
