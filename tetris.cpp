@@ -37,8 +37,8 @@ static void DrawFieldBorders(DrawableWindow& window)
 
 	for(uint32_t x = 0; x < g_cell_size * g_field_width + g_border_width * 2 + g_inner_padding * 2; ++x)
 	{
-		const uint32_t y0 = 0;
-		const uint32_t y1 = g_cell_size * g_field_height + g_border_width + g_inner_padding * 2;
+		constexpr uint32_t y0 = 0;
+		constexpr uint32_t y1 = g_cell_size * g_field_height + g_border_width + g_inner_padding * 2;
 		for(uint32_t d = 0; d < g_border_width; ++d)
 		{
 			pixels[x + (y0 + d) * window_width] = border_color;
@@ -48,8 +48,8 @@ static void DrawFieldBorders(DrawableWindow& window)
 
 	for(uint32_t y = 0; y < g_cell_size * g_field_height + g_border_width * 2 + g_inner_padding * 2; ++y)
 	{
-		const uint32_t x0 = 0;
-		const uint32_t x1 = g_cell_size * g_field_width + g_border_width + g_inner_padding * 2;
+		constexpr uint32_t x0 = 0;
+		constexpr uint32_t x1 = g_cell_size * g_field_width + g_border_width + g_inner_padding * 2;
 		const auto dst_line = pixels + y * window_width;
 		for(uint32_t d = 0; d < g_border_width; ++d)
 		{
@@ -230,8 +230,7 @@ int main()
 
 						const auto next_x = piece_block[0];
 						const auto next_y = piece_block[1] + 1;
-						if (next_x >= 0 && next_x < int32_t(g_field_width) &&
-							next_y >= 0 && next_y < int32_t(g_field_height) &&
+						if(next_y >= 0 && next_y < int32_t(g_field_height) &&
 							field[uint32_t(next_x) + uint32_t(next_y) * g_field_width] != TetrisBlock::Empty)
 							can_move = false;
 					}
@@ -303,7 +302,7 @@ int main()
 		}
 
 		// Process logic.
-		if(!game_over && active_piece != std::nullopt)
+		if(!game_over)
 		{
 			const int32_t x_deltas[2]{ has_move_left ? -1 : 0, has_move_right ? 1 : 0 };
 			for(const int32_t delta : x_deltas)
@@ -314,7 +313,7 @@ int main()
 					const auto next_x = piece_block[0] + delta;
 					const auto next_y = piece_block[1];
 					if (next_x < 0 || next_x >= int32_t(g_field_width) ||
-						(next_y >= 0 && next_y < int32_t(g_field_height) && field[uint32_t(next_x) + uint32_t(next_y) * g_field_width] != TetrisBlock::Empty))
+						(next_y >= 0 && field[uint32_t(next_x) + uint32_t(next_y) * g_field_width] != TetrisBlock::Empty))
 						can_move = false;
 				}
 
@@ -336,10 +335,8 @@ int main()
 				}
 
 				if(can_move)
-				{
 					for(auto& piece_block : active_piece->blocks)
 						piece_block[1] += 1;
-				}
 			}
 
 			if(has_rotate)
