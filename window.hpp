@@ -10,7 +10,7 @@ public:
 public:
 	// All methods are inline - for further inlining and avoiding of unnecessary calls.
 
-	DrawableWindow(const char* const title, const uint32_t width, const uint32_t height)
+	DrawableWindow(const char* const title, const uint32_t width, const uint32_t height, const WNDPROC wnd_proc = WindowProc)
 		: width_(width), height_(height)
 	{
 		const char* const window_class_name = "4k_demo";
@@ -20,7 +20,7 @@ public:
 		WNDCLASSEXA window_class{};
 		window_class.cbSize = sizeof(WNDCLASSEX);
 		window_class.style = CS_OWNDC;
-		window_class.lpfnWndProc = WindowProc;
+		window_class.lpfnWndProc = wnd_proc;
 		window_class.cbClsExtra = 0;
 		window_class.cbWndExtra = 0;
 		window_class.hInstance = 0;
@@ -98,6 +98,11 @@ public:
 		return height_;
 	}
 
+	HDC GetBitmapDC() const
+	{
+		return compatible_dc_;
+	}
+
 	void ProcessMessages()
 	{
 		MSG message;
@@ -113,12 +118,11 @@ public:
 		BitBlt(hdc_, 0, 0, int(width_), int(height_), compatible_dc_, 0, 0, SRCCOPY);
 	}
 
-private:
 	static LRESULT CALLBACK WindowProc(const HWND hwnd, const UINT msg, const WPARAM w_param, const LPARAM l_param)
 	{
 		switch (msg)
 		{
-			// Do not bothre quiting via "main" function - just exit process.
+			// Do not bother quiting via "main" function - just exit process.
 			// TODO - find more compact way to quit application.
 		case WM_CLOSE:
 		case WM_QUIT:
