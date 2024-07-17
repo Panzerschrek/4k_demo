@@ -152,6 +152,8 @@ static LRESULT CALLBACK TetrisWindowProc(const HWND hwnd, const UINT msg, const 
 	return DrawableWindow::WindowProc(hwnd, msg, w_param, l_param);
 }
 
+// #define USE_TEXT_OUT
+
 int main()
 {
 	LARGE_INTEGER start_ticks;
@@ -164,6 +166,12 @@ int main()
 	float prev_tick_time = 0.0f;
 
 	DrawableWindow window("4k_tetris", g_window_width, g_window_height, TetrisWindowProc);
+
+#ifdef USE_TEXT_OUT
+	// Set color for texts.
+	SetTextColor(window.GetBitmapDC(), 0xFFFFFF);
+	SetBkColor(window.GetBitmapDC(), 0x00000000);
+#endif
 
 	// TODO - zero field properly.
 	TetrisBlock field[g_tetris_field_width * g_tetris_field_height];
@@ -400,8 +408,16 @@ int main()
 			for(const auto& piece_block : g_tetris_pieces_blocks[uint32_t(next_piece_type) - 1])
 				DrawQuad(window, piece_block[0] + g_tetris_field_width - 3, piece_block[1] + 5, g_piece_colors[size_t(next_piece_type) - 1]);
 
+#ifdef USE_TEXT_OUT
+		if(game_over)
+		{
+			RECT rect{ 0, 0, g_tetris_field_width * g_cell_size + (g_border_width + g_inner_padding) * 2, g_window_height };
+			DrawTextA(window.GetBitmapDC(), "game over", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+		}
+#endif
+
 		window.Blit();
 
-		Sleep(16);
+		Sleep(15);
 	}
 }

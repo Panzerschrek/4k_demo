@@ -98,6 +98,11 @@ public:
 		return height_;
 	}
 
+	HDC GetBitmapDC() const
+	{
+		return compatible_dc_;
+	}
+
 	void ProcessMessages()
 	{
 		MSG message;
