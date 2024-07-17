@@ -1,3 +1,4 @@
+#include <array>
 #include "window.hpp"
 
 enum class TetrisBlock : uint8_t
@@ -14,6 +15,9 @@ enum class TetrisBlock : uint8_t
 
 constexpr uint32_t g_tetris_field_width  = 10;
 constexpr uint32_t g_tetris_field_height = 20;
+
+constexpr uint32_t g_tetris_piece_num_blocks = 4;
+constexpr uint32_t g_tetris_num_piece_types = 7;
 
 constexpr uint32_t g_cell_size = 20;
 
@@ -38,7 +42,6 @@ static void DrawFieldBorders(DrawableWindow& window)
 	}
 }
 
-
 static void DrawQuad(
 	DrawableWindow& window,
 	const uint32_t cell_x, const uint32_t cell_y,
@@ -52,13 +55,64 @@ static void DrawQuad(
 		window.GetPixels()[x + dx + (y + dy) * window.GetWidth()] = color;
 }
 
+using TetrisPieceBlock = std::array<int32_t, 2>;
+using TetrisPieceBlocks = std::array<TetrisPieceBlock, g_tetris_piece_num_blocks>;
+
+struct TetrisPiece
+{
+	TetrisBlock type = TetrisBlock::I;
+	// Signerd coordinate to allow apperiance form screen top.
+	TetrisPieceBlocks blocks;
+};
+
+TetrisPieceBlocks RotateTetrisPieceBlocks(const TetrisPiece& piece)
+{
+	if (piece.type == TetrisBlock::O)
+		return piece.blocks;
+
+	const auto center = piece.blocks[2];
+
+	std::array<std::array<int32_t, 2>, 4> blocks_transformed;
+	for (size_t i = 0; i < 4; ++i)
+	{
+		const TetrisPieceBlock& block = piece.blocks[i];
+		const int32_t rel_x = block[0] - center[0];
+		const int32_t rel_y = block[1] - center[1];
+		const int32_t new_x = center[0] + rel_y;
+		const int32_t new_y = center[1] - rel_x;
+
+		blocks_transformed[i] = { new_x, new_y };
+	}
+
+	return blocks_transformed;
+}
+
+constexpr std::array<TetrisPieceBlocks, g_tetris_num_piece_types> g_tetris_pieces_blocks =
+{ {
+	{{ { 4, -4}, {4, -3}, {4, -2}, {4, -1} }}, // I
+	{{ { 4, -1}, {5, -1}, {5, -2}, {5, -3} }}, // J
+	{{ { 5, -1}, {4, -1}, {4, -2}, {4, -3} }}, // L
+	{{ { 4, -2}, {5, -2}, {4, -1}, {5, -1} }}, // O
+	{{ { 4, -1}, {5, -1}, {5, -2}, {6, -2} }}, // S
+	{{ { 4, -1}, {6, -1}, {5, -1}, {5, -2} }}, // T
+	{{ { 5, -1}, {6, -1}, {5, -2}, {4, -2} }}, // Z
+} };
+
+
 int main()
 {
 	DrawableWindow window("4k_tetris", 640, 480);
 
 	TetrisBlock field[g_tetris_field_width * g_tetris_field_height];
 
+	TetrisPiece active_piece{ TetrisBlock::I, g_tetris_pieces_blocks[0] };
+
 	field[5] = TetrisBlock::I;
+
+	for (auto& piece_block : active_piece.blocks)
+	{
+		piece_block[1] += 3;
+	}
 
 	while(true)
 	{
@@ -75,6 +129,15 @@ int main()
 			const TetrisBlock block = field[x + y * g_tetris_field_width];
 			if(block != TetrisBlock::Empty)
 				DrawQuad(window, x, y, 0xFF00FF00);
+		}
+
+		for(const auto& piece_block : active_piece.blocks)
+		{
+			if (piece_block[0] >= 0 && piece_block[0] < int32_t(g_tetris_field_width) &&
+				piece_block[1] >= 0 && piece_block[1] < int32_t(g_tetris_field_height))
+			{
+				DrawQuad(window, piece_block[0], piece_block[1], 0xFF00FF00);
+			}
 		}
 
 		window.Blit();
