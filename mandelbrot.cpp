@@ -1,52 +1,7 @@
 #include <complex>
 #include <utility>
+#include "math.hpp"
 #include "window.hpp"
-
-extern "C" int _fltused = 0;
-
-float CosPositive(const float x)
-{
-	const float period = 3.1415926535f * 2.0f;
-
-	const float x_scaled = x / period;
-	const float z = period * (float(x_scaled) - float(int(x_scaled)));
-
-	const float minus_z2 = -z * z;
-	float w = 1.0f;
-	float res = 1.0f;
-
-	for (int32_t i = 2; i <= 18; i+= 2)
-	{
-		w *= minus_z2 / float(i * (i - 1));
-		res += w;
-	}
-
-	return res;
-}
-
-float Cos(const float x)
-{
-	if (x >= 0.0f)
-		return CosPositive(x);
-	else
-		return CosPositive(-x);
-}
-
-float Log(const float x)
-{
-	const float z = (x - 1.0f) / (x + 1.0f);
-	const float z2 = z * z;
-	float w = z;
-	float res = 0.0f;
-
-	for (int32_t i = 1; i <= 13; i += 2)
-	{
-		res += w / float(i);
-		w *= z2;
-	}
-
-	return 2.0f * res;
-}
 
 int main()
 {
@@ -95,13 +50,13 @@ int main()
 					c += 4.0f - d;
 				}
 	
-				const float color_factor = Log(c) * 0.25f;
+				const float color_factor = Math::Log(c) * 0.25f;
 
 				const int32_t components[3]
 				{
-					int32_t((Cos(time * 1.0f + color_factor * 7.0f) * 0.5f + 0.5f) * 254.9f),
-					int32_t((Cos(time * 1.5f + color_factor * 8.0f) * 0.5f + 0.5f) * 254.9f),
-					int32_t((Cos(time * 2.0f + color_factor * 9.0f) * 0.5f + 0.5f) * 254.9f),
+					int32_t((Math::Cos(time * 1.0f + color_factor * 7.0f) * 0.5f + 0.5f) * 254.9f),
+					int32_t((Math::Cos(time * 1.5f + color_factor * 8.0f) * 0.5f + 0.5f) * 254.9f),
+					int32_t((Math::Cos(time * 2.0f + color_factor * 9.0f) * 0.5f + 0.5f) * 254.9f),
 				};
 
 				dst_pixel = DrawableWindow::PixelType(components[0] | (components[1] << 8) | (components[2] << 16));
