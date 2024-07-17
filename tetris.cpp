@@ -133,10 +133,14 @@ constexpr std::array<DrawableWindow::PixelType, g_num_piece_types + 1> g_piece_c
 	0x0000AAAA, // Z
 };
 
-static bool has_move_left = false;
-static bool has_move_right = false;
-static bool has_move_down = false;
-static bool has_rotate = false;
+// Put mutable globals into single strunct to minimize paddings in result executable data section.
+static struct
+{
+	bool has_move_left = false;
+	bool has_move_right = false;
+	bool has_move_down = false;
+	bool has_rotate = false;
+} input;
 
 static LRESULT CALLBACK TetrisWindowProc(const HWND hwnd, const UINT msg, const WPARAM w_param, const LPARAM l_param)
 {
@@ -145,16 +149,16 @@ static LRESULT CALLBACK TetrisWindowProc(const HWND hwnd, const UINT msg, const 
 		switch(w_param)
 		{
 		case VK_LEFT:
-			has_move_left= true;
+			input.has_move_left= true;
 			break;
 		case VK_RIGHT:
-			has_move_right= true;
+			input.has_move_right= true;
 			break;
 		case VK_UP:
-			has_rotate= true;
+			input.has_rotate= true;
 			break;
 		case VK_DOWN:
-			has_move_down = true;
+			input.has_move_down = true;
 			break;
 		};
 	}
@@ -190,10 +194,10 @@ int main()
 	while(true)
 	{
 		// Proces input.
-		has_move_left = false;
-		has_move_right = false;
-		has_move_down = false;
-		has_rotate = false;
+		input.has_move_left = false;
+		input.has_move_right = false;
+		input.has_move_down = false;
+		input.has_rotate = false;
 		window.ProcessMessages();
 
 		// Query time.
@@ -298,7 +302,7 @@ int main()
 		// Process logic.
 		if(!game_over)
 		{
-			const int32_t x_deltas[2]{ has_move_left ? -1 : 0, has_move_right ? 1 : 0 };
+			const int32_t x_deltas[2]{ input.has_move_left ? -1 : 0, input.has_move_right ? 1 : 0 };
 			for(const int32_t delta : x_deltas)
 			{
 				bool can_move = true;
@@ -316,7 +320,7 @@ int main()
 						piece_block[0] += delta;
 			}
 
-			if(has_move_down)
+			if(input.has_move_down)
 			{
 				bool can_move = true;
 				for(const PieceBlock& piece_block : active_piece->blocks)
@@ -333,7 +337,7 @@ int main()
 						piece_block[1] += 1;
 			}
 
-			if(has_rotate)
+			if(input.has_rotate)
 			{
 				const PieceBlocks blocks_rotated = RotatePieceBlocks(*active_piece);
 
