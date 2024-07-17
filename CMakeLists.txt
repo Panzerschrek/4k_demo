@@ -48,7 +48,8 @@ if(MSVC)
 	add_link_options(/OPT:ICF)
 
 	# use our own minimalistic Dos stub.
-	add_link_options(/STUB:${CMAKE_CURRENT_SOURCE_DIR}/DOSSTUB/DOSSTUB2.EXE)
+	# Use only DOS header binary, without actual DOS stub code (even trivial) to save several bytes.
+	add_link_options(/STUB:${CMAKE_CURRENT_SOURCE_DIR}/DOSSTUB/DOSHEAD.BIN)
 
 	# Manifest isn't necessary
 	add_link_options(/MANIFEST:NO)
