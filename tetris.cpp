@@ -1,4 +1,6 @@
 #include <array>
+#include <optional>
+#include "math.hpp"
 #include "window.hpp"
 
 enum class TetrisBlock : uint8_t
@@ -48,7 +50,7 @@ static void DrawQuad(
 	const DrawableWindow::PixelType color)
 {
 	const uint32_t x = 2 + cell_x * g_cell_size;
-	const uint32_t y = 2 + (g_tetris_field_height - 1) * g_cell_size - cell_y * g_cell_size;
+	const uint32_t y = 2 + cell_y * g_cell_size;
 
 	for(uint32_t dy = 1; dy < g_cell_size - 1; ++dy)
 	for(uint32_t dx = 1; dx < g_cell_size - 1; ++dx)
@@ -101,22 +103,111 @@ constexpr std::array<TetrisPieceBlocks, g_tetris_num_piece_types> g_tetris_piece
 
 int main()
 {
+	LARGE_INTEGER start_ticks;
+	QueryPerformanceCounter(&start_ticks);
+
+	LARGE_INTEGER ticks_per_second;
+	QueryPerformanceFrequency(&ticks_per_second);
+
+	const float ticks_frequency = 4.0f;
+	float prev_tick_time = 0.0f;
+
 	DrawableWindow window("4k_tetris", 640, 480);
 
+	// TODO - zero field properly.
 	TetrisBlock field[g_tetris_field_width * g_tetris_field_height];
 
-	TetrisPiece active_piece{ TetrisBlock::I, g_tetris_pieces_blocks[0] };
-
-	field[5] = TetrisBlock::I;
-
-	for (auto& piece_block : active_piece.blocks)
-	{
-		piece_block[1] += 3;
-	}
+	std::optional<TetrisPiece> active_piece = TetrisPiece{ TetrisBlock::I, g_tetris_pieces_blocks[0] };
+	TetrisBlock next_piece_type = TetrisBlock::O;
 
 	while(true)
 	{
 		window.ProcessMessages();
+
+		// Query time.
+		LARGE_INTEGER now;
+		QueryPerformanceCounter(&now);
+		const float current_time = ticks_frequency * float(uint32_t(now.QuadPart - start_ticks.QuadPart)) / float(uint32_t(ticks_per_second.QuadPart));
+
+		if(int(prev_tick_time) < int(current_time))
+		{
+			prev_tick_time = current_time;
+
+			// It's time to move active piece down.
+
+			if(active_piece == std::nullopt)
+			{
+				// No active piece - try to spawn new piece.
+				TetrisPiece next_active_piece;
+				next_active_piece.type = next_piece_type;
+				next_active_piece.blocks = g_tetris_pieces_blocks[uint32_t(next_active_piece.type) - uint32_t(TetrisBlock::I)];
+
+				bool can_move = true;
+				for(const auto& piece_block : next_active_piece.blocks)
+				{
+					if(piece_block[1] == int32_t(g_tetris_field_height - 1))
+						can_move = false;
+
+					const auto next_x = piece_block[0];
+					const auto next_y = piece_block[1] + 1;
+					if (next_x >= 0 && next_x < int32_t(g_tetris_field_width) &&
+						next_y >= 0 && next_y < int32_t(g_tetris_field_height) &&
+						field[uint32_t(next_x) + uint32_t(next_y) * g_tetris_field_width] != TetrisBlock::Empty)
+						can_move = false;
+				}
+
+				if (can_move)
+					active_piece = next_active_piece;
+				else
+				{
+					// game_over_ = true;
+				}
+			}
+			else
+			{
+				bool can_move = true;
+				for(const auto& piece_block : active_piece->blocks)
+				{
+					if(piece_block[1] == int32_t(g_tetris_field_height - 1))
+						can_move = false;
+
+					const auto next_x = piece_block[0];
+					const auto next_y = piece_block[1] + 1;
+					if (next_x >= 0 && next_x < int32_t(g_tetris_field_width) &&
+						next_y >= 0 && next_y < int32_t(g_tetris_field_height) &&
+						field[uint32_t(next_x) + uint32_t(next_y) * g_tetris_field_width] != TetrisBlock::Empty)
+						can_move = false;
+				}
+
+				if(can_move)
+				{
+					for(auto& piece_block : active_piece->blocks)
+						piece_block[1] += 1;
+				}
+				else
+				{
+					// Put piece into field.
+					for(const auto& piece_block : active_piece->blocks)
+					{
+						if (piece_block[1] < 0)
+						{
+							// HACK! prevent overflow.
+							// game_over_ = true;
+							break;
+						}
+						field[uint32_t(piece_block[0]) + uint32_t(piece_block[1]) * g_tetris_field_width] = active_piece->type;
+					}
+
+					// TryRemoveLines();
+
+					active_piece = std::nullopt;
+				}
+			}
+		}
+
+		// Process logic.
+
+		// Draw.
 
 		for(uint32_t i = 0; i < window.GetWidth() * window.GetHeight(); ++i)
 			window.GetPixels()[i] = 0x00000000;
@@ -131,12 +222,15 @@ int main()
 				DrawQuad(window, x, y, 0xFF00FF00);
 		}
 
-		for(const auto& piece_block : active_piece.blocks)
+		if(active_piece != std::nullopt)
 		{
-			if (piece_block[0] >= 0 && piece_block[0] < int32_t(g_tetris_field_width) &&
-				piece_block[1] >= 0 && piece_block[1] < int32_t(g_tetris_field_height))
+			for (const auto& piece_block : active_piece->blocks)
 			{
-				DrawQuad(window, piece_block[0], piece_block[1], 0xFF00FF00);
+				if (piece_block[0] >= 0 && piece_block[0] < int32_t(g_tetris_field_width) &&
+					piece_block[1] >= 0 && piece_block[1] < int32_t(g_tetris_field_height))
+				{
+					DrawQuad(window, piece_block[0], piece_block[1], 0xFF00FF00);
+				}
 			}
 		}
 
