@@ -335,7 +335,7 @@ int main()
 
 		if(active_piece != std::nullopt)
 		{
-			for (const auto& piece_block : active_piece->blocks)
+			for(const auto& piece_block : active_piece->blocks)
 			{
 				if (piece_block[0] >= 0 && piece_block[0] < int32_t(g_tetris_field_width) &&
 					piece_block[1] >= 0 && piece_block[1] < int32_t(g_tetris_field_height))
@@ -344,6 +344,9 @@ int main()
 				}
 			}
 		}
+
+		for(const auto& piece_block : g_tetris_pieces_blocks[uint32_t(next_piece_type) - 1])
+			DrawQuad(window, piece_block[0] + g_tetris_field_width - 3, piece_block[1] + 5, g_piece_colors[size_t(next_piece_type) - 1]);
 
 		window.Blit();
 
