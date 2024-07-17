@@ -294,7 +294,7 @@ int main()
 								break;
 						}
 
-						static const uint8_t score_add_for_lines[5]{0, 1, 2, 4, 8};
+						static const uint8_t score_add_for_lines[5]{0, 1, 4, 9, 16};
 						score += score_add_for_lines[lines_removed];
 					}
 				}
@@ -386,7 +386,6 @@ int main()
 			DrawTextA(window.GetBitmapDC(), "game over", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 		}
 
-		if(false) // Currently didabled - adds to much code.
 		{
 			static char score_line[]= "Score: 000";
 			score_line[9] = '0' + score % 10u;
