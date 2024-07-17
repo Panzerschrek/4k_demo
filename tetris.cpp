@@ -121,8 +121,9 @@ constexpr std::array<TetrisPieceBlocks, g_tetris_num_piece_types> g_tetris_piece
 	{{ { 5, -1}, {6, -1}, {5, -2}, {4, -2} }}, // Z
 } };
 
-constexpr std::array<DrawableWindow::PixelType, g_tetris_num_piece_types> g_piece_colors =
+constexpr std::array<DrawableWindow::PixelType, g_tetris_num_piece_types + 1> g_piece_colors =
 {
+	0x00000000,
 	0x00FF0000, // I
 	0x00F0F0F0, // J
 	0x00FF00FF, // L
@@ -367,25 +368,20 @@ int main()
 
 		for(uint32_t y = 0; y < g_tetris_field_height; ++y)
 		for(uint32_t x = 0; x < g_tetris_field_width ; ++x)
-		{
-			const TetrisBlock block = field[x + y * g_tetris_field_width];
-			if(block != TetrisBlock::Empty)
-				DrawQuad(window, x, y, g_piece_colors[size_t(block) - 1]);
-		}
+			DrawQuad(window, x, y, g_piece_colors[size_t(field[x + y * g_tetris_field_width])]);
 
 		if(active_piece != std::nullopt)
 		{
 			for(const auto& piece_block : active_piece->blocks)
 			{
-				if (piece_block[0] >= 0 && piece_block[0] < int32_t(g_tetris_field_width) &&
-					piece_block[1] >= 0 && piece_block[1] < int32_t(g_tetris_field_height))
-					DrawQuad(window, piece_block[0], piece_block[1], g_piece_colors[size_t(active_piece->type) - 1]);
+				if(piece_block[1] >= 0)
+					DrawQuad(window, piece_block[0], piece_block[1], g_piece_colors[size_t(active_piece->type)]);
 			}
 		}
 
 		if(!game_over)
 			for(const auto& piece_block : g_tetris_pieces_blocks[uint32_t(next_piece_type) - 1])
-				DrawQuad(window, piece_block[0] + g_tetris_field_width - 3, piece_block[1] + 5, g_piece_colors[size_t(next_piece_type) - 1]);
+				DrawQuad(window, piece_block[0] + g_tetris_field_width - 3, piece_block[1] + 5, g_piece_colors[size_t(next_piece_type)]);
 
 		if(game_over)
 		{
