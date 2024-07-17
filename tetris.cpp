@@ -167,8 +167,6 @@ int main()
 
 	// TODO - zero field properly.
 	TetrisBlock field[g_tetris_field_width * g_tetris_field_height];
-	for (uint32_t i = 0; i < g_tetris_field_width; ++i)
-		field[i + (g_tetris_field_height - 1) * g_tetris_field_width] = TetrisBlock::I;
 
 	std::optional<TetrisPiece> active_piece;
 	TetrisBlock next_piece_type = TetrisBlock(1 + uint32_t(start_ticks.LowPart) % g_tetris_num_piece_types);
@@ -258,9 +256,48 @@ int main()
 						field[uint32_t(piece_block[0]) + uint32_t(piece_block[1]) * g_tetris_field_width] = active_piece->type;
 					}
 
-					// TryRemoveLines();
-
 					active_piece = std::nullopt;
+
+					// Remove lines.
+					uint32_t lines_removed = 0;
+					for(uint32_t y = g_tetris_field_height - 1;;)
+					{
+						bool line_is_full = true;
+						for (uint32_t x = 0; x < g_tetris_field_width; ++x)
+							line_is_full &= field[x + y * g_tetris_field_width] != TetrisBlock::Empty;
+
+						if(line_is_full)
+						{
+							++lines_removed;
+
+							// Remove this line.
+							for (uint32_t dst_y = y; ; --dst_y)
+							{
+								if (dst_y == 0)
+								{
+									for (uint32_t x = 0; x < g_tetris_field_width; ++x)
+										field[x + dst_y * g_tetris_field_width] = TetrisBlock::Empty;
+								}
+								else
+								{
+									const uint32_t src_y = dst_y - 1;
+
+									for(uint32_t x = 0; x < g_tetris_field_width; ++x)
+									{
+										field[x + dst_y * g_tetris_field_width] = field[x + src_y * g_tetris_field_width];
+										field[x + src_y * g_tetris_field_width] = TetrisBlock::Empty;
+									}
+								}
+
+								if (dst_y == 0)
+									break;
+							} // Shift lines after removal.
+						}
+						else if(y > 0)
+							--y;
+						else
+							break;
+					}
 				}
 			}
 		}
