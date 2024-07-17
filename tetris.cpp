@@ -57,7 +57,7 @@ static void DrawQuad(
 		window.GetPixels()[x + dx + (y + dy) * window.GetWidth()] = color;
 }
 
-using TetrisPieceBlock = std::array<int32_t, 2>;
+using TetrisPieceBlock = std::array<int8_t, 2>;
 using TetrisPieceBlocks = std::array<TetrisPieceBlock, g_tetris_piece_num_blocks>;
 
 struct TetrisPiece
@@ -74,7 +74,7 @@ TetrisPieceBlocks RotateTetrisPieceBlocks(const TetrisPiece& piece)
 
 	const auto center = piece.blocks[2];
 
-	std::array<std::array<int32_t, 2>, 4> blocks_transformed;
+	std::array<std::array<int8_t, 2>, 4> blocks_transformed;
 	for (size_t i = 0; i < 4; ++i)
 	{
 		const TetrisPieceBlock& block = piece.blocks[i];
@@ -83,7 +83,7 @@ TetrisPieceBlocks RotateTetrisPieceBlocks(const TetrisPiece& piece)
 		const int32_t new_x = center[0] + rel_y;
 		const int32_t new_y = center[1] - rel_x;
 
-		blocks_transformed[i] = { new_x, new_y };
+		blocks_transformed[i] = { int8_t(new_x), int8_t(new_y) };
 	}
 
 	return blocks_transformed;
