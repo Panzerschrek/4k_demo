@@ -2,6 +2,12 @@
 #include <cstdint>
 #include <Windows.h>
 
+inline void ZeroMemoryInline(void* const mem, const size_t size)
+{
+	// Use this function, because functions like "ZeroMemory" are expanded into "memset", which isn't available without standard library.
+	RtlSecureZeroMemory(mem, size);
+}
+
 class DrawableWindow
 {
 public:
@@ -17,20 +23,12 @@ public:
 
 		// Create window class.
 
-		WNDCLASSEXA window_class{};
+		WNDCLASSEXA window_class;
+		ZeroMemoryInline(&window_class, sizeof(window_class));
 		window_class.cbSize = sizeof(WNDCLASSEX);
 		window_class.style = CS_OWNDC;
 		window_class.lpfnWndProc = wnd_proc;
-		window_class.cbClsExtra = 0;
-		window_class.cbWndExtra = 0;
-		window_class.hInstance = 0;
-		window_class.hIcon = nullptr; // Use default icon.
-		// Cursor seems to be not necessary.
-		// window_class.hCursor = LoadCursorA(nullptr, IDC_ARROW);
-		window_class.hbrBackground = nullptr; // Paint our own packground.
-		window_class.lpszMenuName = nullptr;
 		window_class.lpszClassName = window_class_name;
-		window_class.hIconSm = nullptr; // Use default icon.
 
 		RegisterClassExA(&window_class);
 

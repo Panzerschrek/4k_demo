@@ -162,12 +162,6 @@ static LRESULT CALLBACK TetrisWindowProc(const HWND hwnd, const UINT msg, const 
 	return DrawableWindow::WindowProc(hwnd, msg, w_param, l_param);
 }
 
-inline void ZeroMemoryInline(void* const mem, const size_t size)
-{
-	// Use this function, because functions like "ZeroMemory" are expanded into "memset", which isn't available without standard library.
-	RtlSecureZeroMemory(mem, size);
-}
-
 int main()
 {
 	LARGE_INTEGER start_ticks;
