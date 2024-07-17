@@ -33,14 +33,17 @@ static void DrawFieldBorders(DrawableWindow& window)
 {
 	const DrawableWindow::PixelType border_color = 0x00D0D0D0;
 
+	DrawableWindow::PixelType* const pixels = window.GetPixels();
+	const uint32_t window_width = window.GetWidth();
+
 	for(uint32_t x = 0; x < g_cell_size * g_tetris_field_width + g_border_width * 2 + g_inner_padding * 2; ++x)
 	{
 		const uint32_t y0 = 0;
 		const uint32_t y1 = g_cell_size * g_tetris_field_height + g_border_width + g_inner_padding * 2;
 		for(uint32_t d = 0; d < g_border_width; ++d)
 		{
-			window.GetPixels()[x + (y0 + d) * window.GetWidth()] = border_color;
-			window.GetPixels()[x + (y1 + d) * window.GetWidth()] = border_color;
+			pixels[x + (y0 + d) * window_width] = border_color;
+			pixels[x + (y1 + d) * window_width] = border_color;
 		}
 	}
 
@@ -48,10 +51,11 @@ static void DrawFieldBorders(DrawableWindow& window)
 	{
 		const uint32_t x0 = 0;
 		const uint32_t x1 = g_cell_size * g_tetris_field_width + g_border_width + g_inner_padding * 2;
+		const auto dst_line = pixels + y * window_width;
 		for(uint32_t d = 0; d < g_border_width; ++d)
 		{
-			window.GetPixels()[d + x0 + y * window.GetWidth()] = border_color;
-			window.GetPixels()[d + x1 + y * window.GetWidth()] = border_color;
+			dst_line[d + x0] = border_color;
+			dst_line[d + x1] = border_color;
 		}
 	}
 }
@@ -64,9 +68,15 @@ static void DrawQuad(
 	const uint32_t x = g_border_width + g_inner_padding + cell_x * g_cell_size;
 	const uint32_t y = g_border_width + g_inner_padding + cell_y * g_cell_size;
 
+	DrawableWindow::PixelType* const pixels = window.GetPixels();
+	const uint32_t window_width = window.GetWidth();
+
 	for(uint32_t dy = 1; dy < g_cell_size - 1; ++dy)
-	for(uint32_t dx = 1; dx < g_cell_size - 1; ++dx)
-		window.GetPixels()[x + dx + (y + dy) * window.GetWidth()] = color;
+	{
+		const auto dst_line = pixels + (y + dy) * window_width;
+		for(uint32_t dx = 1; dx < g_cell_size - 1; ++dx)
+			dst_line[x + dx] = color;
+	}
 }
 
 using TetrisPieceBlock = std::array<int8_t, 2>;
@@ -385,7 +395,7 @@ int main()
 		DrawFieldBorders(window);
 
 		for(uint32_t y = 0; y < g_tetris_field_height; ++y)
-		for(uint32_t x = 0; x < g_tetris_field_width; ++x)
+		for(uint32_t x = 0; x < g_tetris_field_width ; ++x)
 		{
 			const TetrisBlock block = field[x + y * g_tetris_field_width];
 			if(block != TetrisBlock::Empty)
@@ -398,9 +408,7 @@ int main()
 			{
 				if (piece_block[0] >= 0 && piece_block[0] < int32_t(g_tetris_field_width) &&
 					piece_block[1] >= 0 && piece_block[1] < int32_t(g_tetris_field_height))
-				{
 					DrawQuad(window, piece_block[0], piece_block[1], g_piece_colors[size_t(active_piece->type) - 1]);
-				}
 			}
 		}
 
