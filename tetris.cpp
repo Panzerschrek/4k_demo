@@ -1,6 +1,5 @@
 #include <array>
 #include <optional>
-#include "math.hpp"
 #include "window.hpp"
 
 enum class TetrisBlock : uint8_t
@@ -176,8 +175,8 @@ int main()
 	LARGE_INTEGER ticks_per_second;
 	QueryPerformanceFrequency(&ticks_per_second);
 
-	const float ticks_frequency = 4.0f;
-	float prev_tick_time = 0.0f;
+	const uint32_t ticks_frequency = 4;
+	uint32_t prev_tick_time = 0;
 
 	DrawableWindow window("4k_tetris", g_window_width, g_window_height, TetrisWindowProc);
 
@@ -205,9 +204,9 @@ int main()
 		// Query time.
 		LARGE_INTEGER now;
 		QueryPerformanceCounter(&now);
-		const float current_time = ticks_frequency * float(uint32_t(now.QuadPart - start_ticks.QuadPart)) / float(uint32_t(ticks_per_second.QuadPart));
+		const uint32_t current_time = ticks_frequency * uint32_t(now.QuadPart - start_ticks.QuadPart) / uint32_t(ticks_per_second.QuadPart);
 
-		if(int(prev_tick_time) < int(current_time))
+		if(prev_tick_time < current_time)
 		{
 			prev_tick_time = current_time;
 
