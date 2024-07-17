@@ -158,8 +158,8 @@ int main()
 	for (uint32_t i = 0; i < g_tetris_field_width; ++i)
 		field[i + (g_tetris_field_height - 1) * g_tetris_field_width] = TetrisBlock(i % uint32_t(g_tetris_num_piece_types + 1));
 
-	std::optional<TetrisPiece> active_piece = TetrisPiece{ TetrisBlock::I, g_tetris_pieces_blocks[0] };
-	TetrisBlock next_piece_type = TetrisBlock::O;
+	std::optional<TetrisPiece> active_piece;
+	TetrisBlock next_piece_type = TetrisBlock(1 + uint32_t(start_ticks.LowPart) % g_tetris_num_piece_types);
 
 	while(true)
 	{
@@ -187,6 +187,8 @@ int main()
 				TetrisPiece next_active_piece;
 				next_active_piece.type = next_piece_type;
 				next_active_piece.blocks = g_tetris_pieces_blocks[uint32_t(next_active_piece.type) - uint32_t(TetrisBlock::I)];
+
+				next_piece_type = TetrisBlock(1 + uint32_t(now.LowPart) % g_tetris_num_piece_types);
 
 				bool can_move = true;
 				for(const TetrisPieceBlock& piece_block : next_active_piece.blocks)
