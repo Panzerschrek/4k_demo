@@ -101,6 +101,35 @@ constexpr std::array<TetrisPieceBlocks, g_tetris_num_piece_types> g_tetris_piece
 } };
 
 
+static bool has_move_left = false;
+static bool has_move_right = false;
+static bool has_move_down = false;
+static bool has_rotate = false;
+
+static LRESULT CALLBACK TetrisWindowProc(const HWND hwnd, const UINT msg, const WPARAM w_param, const LPARAM l_param)
+{
+	if(msg == WM_KEYDOWN)
+	{
+		switch(w_param)
+		{
+		case VK_LEFT:
+			has_move_left= true;
+			break;
+		case VK_RIGHT:
+			has_move_right= true;
+			break;
+		case VK_UP:
+			has_rotate= true;
+			break;
+		case VK_DOWN:
+			has_move_down = true;
+			break;
+		};
+	}
+
+	return DrawableWindow::WindowProc(hwnd, msg, w_param, l_param);
+}
+
 int main()
 {
 	LARGE_INTEGER start_ticks;
@@ -112,7 +141,7 @@ int main()
 	const float ticks_frequency = 4.0f;
 	float prev_tick_time = 0.0f;
 
-	DrawableWindow window("4k_tetris", 640, 480);
+	DrawableWindow window("4k_tetris", 640, 480, TetrisWindowProc);
 
 	// TODO - zero field properly.
 	TetrisBlock field[g_tetris_field_width * g_tetris_field_height];
@@ -122,6 +151,11 @@ int main()
 
 	while(true)
 	{
+		// Proces input.
+		has_move_left = false;
+		has_move_right = false;
+		has_move_down = false;
+		has_rotate = false;
 		window.ProcessMessages();
 
 		// Query time.
@@ -143,7 +177,7 @@ int main()
 				next_active_piece.blocks = g_tetris_pieces_blocks[uint32_t(next_active_piece.type) - uint32_t(TetrisBlock::I)];
 
 				bool can_move = true;
-				for(const auto& piece_block : next_active_piece.blocks)
+				for(const TetrisPieceBlock& piece_block : next_active_piece.blocks)
 				{
 					if(piece_block[1] == int32_t(g_tetris_field_height - 1))
 						can_move = false;
@@ -166,7 +200,7 @@ int main()
 			else
 			{
 				bool can_move = true;
-				for(const auto& piece_block : active_piece->blocks)
+				for(const TetrisPieceBlock& piece_block : active_piece->blocks)
 				{
 					if(piece_block[1] == int32_t(g_tetris_field_height - 1))
 						can_move = false;
@@ -187,7 +221,7 @@ int main()
 				else
 				{
 					// Put piece into field.
-					for(const auto& piece_block : active_piece->blocks)
+					for(const TetrisPieceBlock& piece_block : active_piece->blocks)
 					{
 						if (piece_block[1] < 0)
 						{
@@ -206,6 +240,69 @@ int main()
 		}
 
 		// Process logic.
+		if(active_piece != std::nullopt)
+		{
+			const auto try_side_move_piece =
+				[&](const int32_t delta)
+			{
+				bool can_move = true;
+				for(const TetrisPieceBlock& piece_block : active_piece->blocks)
+				{
+					const auto next_x = piece_block[0] + delta;
+					const auto next_y = piece_block[1];
+					if (next_x < 0 || next_x >= int32_t(g_tetris_field_width) ||
+						(next_y >= 0 && next_y < int32_t(g_tetris_field_height) && field[uint32_t(next_x) + uint32_t(next_y) * g_tetris_field_width] != TetrisBlock::Empty))
+						can_move = false;
+				}
+
+				if(can_move)
+					for(auto& piece_block : active_piece->blocks)
+						piece_block[0] += delta;
+			};
+
+			if(has_move_left)
+				try_side_move_piece(-1);
+			if(has_move_right)
+				try_side_move_piece(1);
+
+			if(has_move_down)
+			{
+				bool can_move = true;
+				for(const TetrisPieceBlock& piece_block : active_piece->blocks)
+				{
+					const auto next_x = piece_block[0];
+					const auto next_y = piece_block[1] + 1;
+					if (next_y >= int32_t(g_tetris_field_height) ||
+						(next_y >= 0 && field[uint32_t(next_x) + uint32_t(next_y) * g_tetris_field_width] != TetrisBlock::Empty))
+						can_move = false;
+				}
+
+				if(can_move)
+				{
+					for(auto& piece_block : active_piece->blocks)
+						piece_block[1] += 1;
+				}
+			}
+
+			if(has_rotate)
+			{
+				const TetrisPieceBlocks blocks_rotated = RotateTetrisPieceBlocks(*active_piece);
+
+				bool can_rotate = true;
+				for(const TetrisPieceBlock& block : blocks_rotated)
+				{
+					if (block[0] < 0 || block[0] >= int32_t(g_tetris_field_width) ||
+						block[1] >= int32_t(g_tetris_field_height) ||
+						(block[1] >= 0 && field[uint32_t(block[0]) + uint32_t(block[1]) * g_tetris_field_width] != TetrisBlock::Empty))
+					{
+						can_rotate = false;
+					}
+				}
+
+				if(can_rotate)
+					active_piece->blocks = blocks_rotated;
+			}
+		}
 
 		// Draw.
 
