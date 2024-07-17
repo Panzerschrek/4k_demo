@@ -220,30 +220,8 @@ int main()
 				if(active_piece == std::nullopt)
 				{
 					// No active piece - try to spawn new piece.
-					TetrisPiece next_active_piece;
-					next_active_piece.type = next_piece_type;
-					next_active_piece.blocks = g_tetris_pieces_blocks[uint32_t(next_active_piece.type) - uint32_t(TetrisBlock::I)];
-
+					active_piece = TetrisPiece{ next_piece_type, g_tetris_pieces_blocks[uint32_t(next_piece_type) - uint32_t(TetrisBlock::I)] };
 					next_piece_type = TetrisBlock(1 + uint32_t(now.LowPart) % g_tetris_num_piece_types);
-
-					bool can_move = true;
-					for(const TetrisPieceBlock& piece_block : next_active_piece.blocks)
-					{
-						if(piece_block[1] == int32_t(g_tetris_field_height - 1))
-							can_move = false;
-
-						const auto next_x = piece_block[0];
-						const auto next_y = piece_block[1] + 1;
-						if (next_x >= 0 && next_x < int32_t(g_tetris_field_width) &&
-							next_y >= 0 && next_y < int32_t(g_tetris_field_height) &&
-							field[uint32_t(next_x) + uint32_t(next_y) * g_tetris_field_width] != TetrisBlock::Empty)
-							can_move = false;
-					}
-
-					if(can_move)
-						active_piece = next_active_piece;
-					else
-						game_over = true;
 				}
 				else
 				{
@@ -272,12 +250,9 @@ int main()
 						for(const TetrisPieceBlock& piece_block : active_piece->blocks)
 						{
 							if(piece_block[1] < 0)
-							{
-								// HACK! prevent overflow.
 								game_over = true;
-								break;
-							}
-							field[uint32_t(piece_block[0]) + uint32_t(piece_block[1]) * g_tetris_field_width] = active_piece->type;
+							else
+								field[uint32_t(piece_block[0]) + uint32_t(piece_block[1]) * g_tetris_field_width] = active_piece->type;
 						}
 
 						active_piece = std::nullopt;
