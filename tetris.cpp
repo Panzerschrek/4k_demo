@@ -162,6 +162,12 @@ static LRESULT CALLBACK TetrisWindowProc(const HWND hwnd, const UINT msg, const 
 	return DrawableWindow::WindowProc(hwnd, msg, w_param, l_param);
 }
 
+inline void ZeroMemoryInline(void* const mem, const size_t size)
+{
+	// Use this function, because functions like "ZeroMemory" are expanded into "memset", which isn't available without standard library.
+	RtlSecureZeroMemory(mem, size);
+}
+
 // #define USE_TEXT_OUT
 
 int main()
@@ -183,8 +189,8 @@ int main()
 	SetBkColor(window.GetBitmapDC(), 0x00000000);
 #endif
 
-	// TODO - zero field properly.
 	TetrisBlock field[g_tetris_field_width * g_tetris_field_height];
+	ZeroMemoryInline(field, sizeof(field));
 
 	std::optional<TetrisPiece> active_piece;
 	TetrisBlock next_piece_type = TetrisBlock(1 + uint32_t(start_ticks.LowPart) % g_tetris_num_piece_types);
@@ -381,8 +387,7 @@ int main()
 
 		// Draw.
 
-		for(uint32_t i = 0; i < window.GetWidth() * window.GetHeight(); ++i)
-			window.GetPixels()[i] = 0x00000000;
+		ZeroMemoryInline(window.GetPixels(), window.GetWidth() * window.GetHeight() * sizeof(DrawableWindow::PixelType));
 
 		DrawFieldBorders(window);
 
