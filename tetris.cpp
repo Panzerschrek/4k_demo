@@ -191,6 +191,7 @@ int main()
 	std::optional<TetrisPiece> active_piece;
 	TetrisBlock next_piece_type = TetrisBlock(1 + uint32_t(start_ticks.LowPart) % g_tetris_num_piece_types);
 	bool game_over = false;
+	uint32_t score = 0;
 
 	while(true)
 	{
@@ -293,6 +294,9 @@ int main()
 							else
 								break;
 						}
+
+						static const uint8_t score_add_for_lines[5]{0, 1, 2, 4, 8};
+						score += score_add_for_lines[lines_removed];
 					}
 				}
 			}
@@ -388,6 +392,17 @@ int main()
 		{
 			RECT rect{ 0, 0, g_tetris_field_width * g_cell_size + (g_border_width + g_inner_padding) * 2, g_window_height };
 			DrawTextA(window.GetBitmapDC(), "game over", -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+		}
+
+		if(false) // Currently didabled - adds to much code.
+		{
+			static char score_line[]= "Score: 000";
+			score_line[9] = '0' + score % 10u;
+			score_line[8] = '0' + score / 10u % 10u;
+			score_line[7] = '0' + score / 100u;
+
+			RECT rect{ g_window_width - 120, g_window_height - 40, g_window_width, g_window_height };
+			DrawTextA(window.GetBitmapDC(), score_line, -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 		}
 
 		window.Blit();
