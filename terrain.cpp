@@ -49,7 +49,7 @@ static uint32_t InterpolatedNoise(const uint32_t x, const uint32_t y, const uint
 	return uint32_t((interp_x[1] * dx + interp_x[0] * (step - dx)) >> (k + k));
 }
 
-inline std::array<float, 3> GetTerrainColor(float h)
+static std::array<float, 3> GetTerrainColor(float h)
 {
 	constexpr uint32_t num_colors = 6;
 	static constexpr float borders[num_colors - 1]= { 83.0f, 90.0f, 110.0f, 145.0f, 160.0f };
@@ -85,7 +85,7 @@ inline std::array<float, 3> GetTerrainColor(float h)
 	return { last_color[0], last_color[1], last_color[2] };
 }
 
-float InvSqrt(const float x)
+inline float InvSqrt(const float x)
 {
 	return _mm_cvtss_f32( _mm_rsqrt_ss(_mm_set_ps1(x)) );
 }
