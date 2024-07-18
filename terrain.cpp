@@ -2,6 +2,7 @@
 #include <utility>
 #include "math.hpp"
 #include "window.hpp"
+#include <immintrin.h>
 
 static int32_t Noise2(const int32_t x, const int32_t y, const int32_t seed)
 {
@@ -84,6 +85,10 @@ inline std::array<float, 3> GetTerrainColor(float h)
 	return { last_color[0], last_color[1], last_color[2] };
 }
 
+float InvSqrt(const float x)
+{
+	return _mm_cvtss_f32( _mm_rsqrt_ss(_mm_set_ps1(x)) );
+}
 
 constexpr uint32_t hightmap_size_log2 = 10;
 constexpr uint32_t hightmap_size = 1 << hightmap_size_log2;
@@ -120,11 +125,51 @@ int main()
 		const float h = float(r) / 512.0f; // TODO - clamp to water level?
 
 		const uint32_t address = x + (y << hightmap_size_log2);
-		hightmap_data->hightmap[address] = h;
+		hightmap_data->hightmap[address] = h * 0.75f;
 
 		// TODO - add simple sun lighting.
 
-		hightmap_data->color_data[address] = GetTerrainColor(h);
+		const auto base_color = GetTerrainColor(h);
+
+		hightmap_data->color_data[address] = base_color;
+	}
+
+	constexpr float sun_dir[3]{ 0.3f, 0.6f, 0.4f };
+	constexpr float sun_dir_squared = sun_dir[0] * sun_dir[0] + sun_dir[1] * sun_dir[1] + sun_dir[2] * sun_dir[2];
+
+	for(uint32_t y = 0; y < hightmap_size; ++y)
+	for(uint32_t x = 0; x < hightmap_size; ++x)
+	{
+		float adjacent_cells[3][3];
+		for(int32_t dx = 0; dx < 3; ++dx)
+		for(int32_t dy = 0; dy < 3; ++dy)
+		{
+			const uint32_t address =
+				(int32_t(x + dx - 1) & hightmap_size_mask) +
+				((int32_t(y + dy - 1) & hightmap_size_mask) << hightmap_size_log2);
+			adjacent_cells[dx][dy] = hightmap_data->hightmap[address];
+		}
+
+		const float dx =
+			(adjacent_cells[2][0] + adjacent_cells[2][1] + adjacent_cells[2][2]) -
+			(adjacent_cells[0][0] + adjacent_cells[0][1] + adjacent_cells[0][2]);
+
+		const float dy =
+			(adjacent_cells[0][2] + adjacent_cells[1][2] + adjacent_cells[2][2]) -
+			(adjacent_cells[0][0] + adjacent_cells[1][0] + adjacent_cells[2][0]);
+
+		const float normal[3]{dx, dy, 3.0f};
+
+		const float angle_cos =
+			(normal[0] * sun_dir[0] + normal[1] * sun_dir[1] + normal[2] * sun_dir[2]) *
+			InvSqrt((normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]) * sun_dir_squared);
+
+		const float dot_clampled = std::max(0.0f, angle_cos);
+		const float light = 0.3f + 0.69f * dot_clampled;
+
+		const uint32_t address = x + (y << hightmap_size_log2);
+		for(uint32_t j= 0; j < 3; ++j)
+			hightmap_data->color_data[address][j] *= light;
 	}
 	
 	DrawableWindow window("4k_terrain", 1024, 768);
@@ -180,10 +225,8 @@ int main()
 					((int32_t(terrain_pos[1]) & hightmap_size_mask) << hightmap_size_log2);
 
 				const float h = hightmap_data->hightmap[address];
-				
-				const float h_scaled = h * 0.75f;
 
-				const float h_relative_to_camera = h_scaled - cam_position[2];
+				const float h_relative_to_camera = h - cam_position[2];
 
 				const float screen_y = h_relative_to_camera / depth;
 				const int32_t y = int32_t((1.0f - screen_y - additional_y_shift) * screen_scale);
