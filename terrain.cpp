@@ -1,3 +1,4 @@
+#include <array>
 #include <utility>
 #include "math.hpp"
 #include "window.hpp"
@@ -45,6 +46,30 @@ static uint32_t InterpolatedNoise(const uint32_t x, const uint32_t y, const uint
 		dy * noise[2] + (step - dy) * noise[1],
 	};
 	return uint32_t((interp_x[1] * dx + interp_x[0] * (step - dx)) >> (k + k));
+}
+
+inline std::array<float, 3> GetTerrainColor(float h)
+{
+	constexpr uint32_t num_colors = 6;
+	static constexpr float borders[num_colors - 1]= { 80.0f, 90.0f, 120.0f, 145.0f, 160.0f };
+	static constexpr float colors[num_colors][3]
+	{
+		{ 120.0f, 60.0f, 60.0f },
+		{ 60.0f, 170.0f, 170.0f },
+		{ 70.0f, 190.0f, 70.0f },
+		{ 80.0f, 128.0f, 80.0f },
+		{ 128.0f, 128.0f, 128.0f },
+		{ 255.0f, 255.0f, 255.0f },
+	};
+	
+	for(uint32_t i = 0; i < num_colors - 1; ++i)
+	{
+		if(h <= borders[i])
+			return {colors[i][0], colors[i][1], colors[i][2]};
+	}
+
+	const auto& last_color = colors[num_colors - 1];
+	return { last_color[0], last_color[1], last_color[2] };
 }
 
 #pragma 
@@ -100,8 +125,7 @@ int main()
 
 		const float screen_scale = 0.5f * float(std::max(window.GetWidth(), window.GetHeight()));
 
-		static constexpr float fog_color[3]{ 240.0f, 200.0f, 200.0f };
-		constexpr DrawableWindow::PixelType fog_color_int = uint32_t(fog_color[0]) | (uint32_t(fog_color[1]) << 8) | (uint32_t(fog_color[2]) << 16);
+		static constexpr float color_fog[3]{ 240.0f, 200.0f, 200.0f };
 
 		const float max_depth = float(hightmap_size * 2);
 
@@ -135,7 +159,7 @@ int main()
 				const float screen_y = h_relative_to_camera / depth;
 				const int32_t y = int32_t((1.0f - screen_y - additional_y_shift) * screen_scale);
 
-				const float own_color[3]{ float(h), float(h), float(h)};
+				const auto own_color = GetTerrainColor(float(h));
 				
 				const float fog_factor = depth / max_depth;
 				const float one_minus_fog_factor = 1.0f - fog_factor;
@@ -143,8 +167,8 @@ int main()
 				DrawableWindow::PixelType color = 0x000000;
 				for(uint32_t j = 0; j < 3; ++j)
 				{
-					float color_mixed = own_color[j] * one_minus_fog_factor + fog_color[j] * fog_factor;
-					color |= uint32_t(color_mixed) << (j << 3);
+					float color_mixed = own_color[j] * one_minus_fog_factor + color_fog[j] * fog_factor;
+					color |= uint32_t(int32_t(color_mixed) << (j << 3));
 				}
 
 				const int32_t min_y= std::max(y, 0);
@@ -154,8 +178,12 @@ int main()
 				prev_y = min_y;
 			}
 
-			for(int32_t dst_y = std::min(prev_y - 1, max_y); dst_y >= 0; --dst_y)
-				window.GetPixels()[x + uint32_t(dst_y) * window.GetWidth()] = fog_color_int;
+			// Fill remaining sky with fog.
+			{
+				constexpr DrawableWindow::PixelType fog_color_int = uint32_t(color_fog[0]) | (uint32_t(color_fog[1]) << 8) | (uint32_t(color_fog[2]) << 16);
+				for(int32_t dst_y = std::min(prev_y - 1, max_y); dst_y >= 0; --dst_y)
+					window.GetPixels()[x + uint32_t(dst_y) * window.GetWidth()] = fog_color_int;
+			}
 		}
 
 		window.Blit();
