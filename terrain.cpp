@@ -98,7 +98,7 @@ int main()
 	// For now allocate memory from heap.
 	// Using static array increases executable size.
 	// Using stack array requires stack checking function.
-	uint8_t* hightmap = reinterpret_cast<uint8_t*>(VirtualAlloc(nullptr, hightmap_size * hightmap_size, MEM_COMMIT, PAGE_READWRITE));
+	uint16_t* hightmap = reinterpret_cast<uint16_t*>(VirtualAlloc(nullptr, hightmap_size * hightmap_size * sizeof(uint16_t), MEM_COMMIT, PAGE_READWRITE));
 
 	for(uint32_t y = 0; y < hightmap_size; ++y)
 	for(uint32_t x = 0; x < hightmap_size; ++x)
@@ -110,7 +110,7 @@ int main()
 		for(uint32_t i = min_octave; i <= max_octave; ++i)
 			r += InterpolatedNoise(x, y, hightmap_size_log2, i) >> (max_octave  - i);
 
-		hightmap[ x + (y << hightmap_size_log2)] = r >> 9;
+		hightmap[ x + (y << hightmap_size_log2)] = r >> 1;
 	}
 	
 	DrawableWindow window("4k_terrain", 1024, 768);
@@ -159,19 +159,19 @@ int main()
 				const float ray_vec_rotated[2]{ ray_vec[0] * cam_angle_cos - ray_vec[1] * cam_angle_sin, ray_vec[0] * cam_angle_sin + ray_vec[1] * cam_angle_cos };
 				const float terrain_pos[2]{ ray_vec_rotated[0] + cam_position[0], ray_vec_rotated[1] + cam_position[1] };
 
-				const uint8_t h =
+				const uint16_t h =
 					hightmap[
 						(int32_t(terrain_pos[0]) & hightmap_size_mask) +
 						((int32_t(terrain_pos[1]) & hightmap_size_mask) << hightmap_size_log2)];
 
-				const float h_scaled = float(h) * 0.75f;
+				const float h_scaled = float(h) * (0.75f / 256.0f);
 
 				const float h_relative_to_camera = h_scaled - cam_position[2];
 
 				const float screen_y = h_relative_to_camera / depth;
 				const int32_t y = int32_t((1.0f - screen_y - additional_y_shift) * screen_scale);
 
-				const auto own_color = GetTerrainColor(float(h));
+				const auto own_color = GetTerrainColor(float(h) / 256.0f);
 				
 				const float fog_factor = depth / max_depth;
 				const float one_minus_fog_factor = 1.0f - fog_factor;
