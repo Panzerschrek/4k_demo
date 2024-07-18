@@ -51,18 +51,18 @@ static uint32_t InterpolatedNoise(const uint32_t x, const uint32_t y, const uint
 inline std::array<float, 3> GetTerrainColor(float h)
 {
 	constexpr uint32_t num_colors = 6;
-	static constexpr float borders[num_colors - 1]= { 80.0f, 90.0f, 120.0f, 145.0f, 160.0f };
+	static constexpr float borders[num_colors - 1]= { 80.0f, 90.0f, 110.0f, 145.0f, 160.0f };
 	static constexpr float colors[num_colors][3]
 	{
-		{ 120.0f, 60.0f, 60.0f },
+		{ 170.0f, 110.0f, 110.0f },
 		{ 60.0f, 170.0f, 170.0f },
 		{ 70.0f, 190.0f, 70.0f },
 		{ 80.0f, 128.0f, 80.0f },
-		{ 128.0f, 128.0f, 128.0f },
+		{ 110.0f, 110.0f, 110.0f },
 		{ 255.0f, 255.0f, 255.0f },
 	};
 
-	const float half_border = 5.0f;
+	const float half_border = 7.0f;
 	
 	for(uint32_t i = 0; i < num_colors - 1; ++i)
 	{
@@ -111,6 +111,7 @@ int main()
 			r += InterpolatedNoise(x, y, hightmap_size_log2, i) >> (max_octave  - i);
 
 		hightmap[ x + (y << hightmap_size_log2)] = r >> 1;
+		// TODO - clamp to water level?
 	}
 	
 	DrawableWindow window("4k_terrain", 1024, 768);
@@ -164,6 +165,7 @@ int main()
 						(int32_t(terrain_pos[0]) & hightmap_size_mask) +
 						((int32_t(terrain_pos[1]) & hightmap_size_mask) << hightmap_size_log2)];
 
+				// TODO - perform interpolation.
 				const float h_scaled = float(h) * (0.75f / 256.0f);
 
 				const float h_relative_to_camera = h_scaled - cam_position[2];
@@ -172,6 +174,8 @@ int main()
 				const int32_t y = int32_t((1.0f - screen_y - additional_y_shift) * screen_scale);
 
 				const auto own_color = GetTerrainColor(float(h) / 256.0f);
+
+				// TODO - add simple sun lighting.
 				
 				const float fog_factor = depth / max_depth;
 				const float one_minus_fog_factor = 1.0f - fog_factor;
