@@ -21,13 +21,18 @@ inline float Cos(float x)
 	float w = 1.0f;
 	float res = 1.0f;
 
-	for (int32_t i = 2; i <= 18; i += 2)
+	for (int32_t i = 2; i <= 20; i += 2)
 	{
 		w *= minus_z2 / float(i * (i - 1));
 		res += w;
 	}
 
 	return res;
+}
+
+inline float Sin(const float x)
+{
+	return Cos(x - tau / 4.0f);
 }
 
 inline float Log(const float x)

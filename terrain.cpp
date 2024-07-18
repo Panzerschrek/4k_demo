@@ -95,10 +95,14 @@ int main()
 		ZeroMemoryInline(window.GetPixels(), window.GetWidth() * window.GetHeight() * sizeof(DrawableWindow::PixelType));
 
 		const float move_speed = 15.0f;
-		const float cam_position[3]{float(hightmap_size) / 2.0f, time * move_speed, 140.0f};
+		const float cam_position[3]{0.0f, time * move_speed, 140.0f};
 		const float additional_y_shift = 0.5f;
 
 		const float screen_scale = 0.5f * float(std::max(window.GetWidth(), window.GetHeight()));
+
+		const float cam_angle = time * (-0.06f);
+		const float cam_angle_cos = Math::Cos(cam_angle);
+		const float cam_angle_sin = Math::Sin(cam_angle);
 
 		// Process columns.
 		for(uint32_t x = 0; x < window.GetWidth(); ++x)
@@ -109,7 +113,9 @@ int main()
 			int32_t prev_y = window.GetHeight();
 			for(float depth = 16.0f; depth < float(hightmap_size * 2); depth *= 1.004f)
 			{
-				const float terrain_pos[2]{ ray_x * depth + cam_position[0], depth + cam_position[1] };
+				const float ray_vec[2]{ ray_x * depth, depth };
+				const float ray_vec_rotated[2]{ ray_vec[0] * cam_angle_cos - ray_vec[1] * cam_angle_sin, ray_vec[0] * cam_angle_sin + ray_vec[1] * cam_angle_cos };
+				const float terrain_pos[2]{ ray_vec_rotated[0] + cam_position[0], ray_vec_rotated[1] + cam_position[1] };
 
 				const uint8_t h =
 					hightmap[
