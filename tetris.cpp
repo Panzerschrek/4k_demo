@@ -166,7 +166,11 @@ static LRESULT CALLBACK TetrisWindowProc(const HWND hwnd, const UINT msg, const 
 	return DrawableWindow::WindowProc(hwnd, msg, w_param, l_param);
 }
 
+#ifdef DEBUG
+int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
+#else
 int main()
+#endif
 {
 	LARGE_INTEGER start_ticks;
 	QueryPerformanceCounter(&start_ticks);

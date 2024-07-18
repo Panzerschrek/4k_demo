@@ -3,7 +3,11 @@
 #include "math.hpp"
 #include "window.hpp"
 
+#ifdef DEBUG
+int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
+#else
 int main()
+#endif
 {
 	const uint32_t width = 800;
 	const uint32_t height = 600;
