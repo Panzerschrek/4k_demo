@@ -112,6 +112,8 @@ int main()
 	// Using stack array requires stack checking function.
 	const auto hightmap_data = reinterpret_cast<HightmapData*>(VirtualAlloc(nullptr, sizeof(HightmapData), MEM_COMMIT, PAGE_READWRITE));
 
+	constexpr float terrain_scale = 0.75f;
+
 	for(uint32_t y = 0; y < hightmap_size; ++y)
 	for(uint32_t x = 0; x < hightmap_size; ++x)
 	{
@@ -126,7 +128,7 @@ int main()
 		const float h = std::max(77.0f, float(r) / 512.0f);
 
 		const uint32_t address = x + (y << hightmap_size_log2);
-		hightmap_data->hightmap[address] = h * 0.75f;
+		hightmap_data->hightmap[address] = h * terrain_scale;
 
 		// TODO - add simple sun lighting.
 
@@ -135,7 +137,7 @@ int main()
 		hightmap_data->color_data[address] = base_color;
 	}
 
-	constexpr float sun_dir[3]{ 0.3f, 0.6f, 0.4f };
+	constexpr float sun_dir[3]{ 0.7f, 0.3f, 0.5f };
 	constexpr float sun_dir_squared = sun_dir[0] * sun_dir[0] + sun_dir[1] * sun_dir[1] + sun_dir[2] * sun_dir[2];
 
 	for(uint32_t y = 0; y < hightmap_size; ++y)
@@ -151,22 +153,48 @@ int main()
 			adjacent_cells[dx][dy] = hightmap_data->hightmap[address];
 		}
 
-		const float dx =
+		const float dh_dx =
 			(adjacent_cells[2][0] + adjacent_cells[2][1] + adjacent_cells[2][2]) -
 			(adjacent_cells[0][0] + adjacent_cells[0][1] + adjacent_cells[0][2]);
 
-		const float dy =
+		const float dh_dy =
 			(adjacent_cells[0][2] + adjacent_cells[1][2] + adjacent_cells[2][2]) -
 			(adjacent_cells[0][0] + adjacent_cells[1][0] + adjacent_cells[2][0]);
 
-		const float normal[3]{dx, dy, 3.0f};
+		const float normal[3]{ -dh_dx, -dh_dy, 3.0f};
 
 		const float angle_cos =
 			(normal[0] * sun_dir[0] + normal[1] * sun_dir[1] + normal[2] * sun_dir[2]) *
 			InvSqrt((normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]) * sun_dir_squared);
 
-		const float dot_clampled = std::max(0.0f, angle_cos);
-		const float light = 0.3f + 0.69f * dot_clampled;
+		float sub_dir_dot_clampled = std::max(0.0f, angle_cos);
+
+		const bool calculate_shadows = true;
+		if(calculate_shadows)
+		{
+			// Trace ray towards the sun up to maximum possible hight.
+			float pos[3]{ float(x), float(y), adjacent_cells[1][1] };
+			while (pos[2] < terrain_scale * 256.0f)
+			{
+				pos[0] += sun_dir[0];
+				pos[1] += sun_dir[1];
+				pos[2] += sun_dir[2];
+
+				// TODO - use floor here.
+				const uint32_t address =
+					(int32_t(pos[0]) & hightmap_size_mask) +
+					((int32_t(pos[1]) & hightmap_size_mask) << hightmap_size_log2);
+
+				if(pos[2] < hightmap_data->hightmap[address])
+				{
+					// In shadow.
+					sub_dir_dot_clampled = 0.0f;
+					break;
+				}
+			}
+		}
+
+		const float light = 0.3f + 0.69f * sub_dir_dot_clampled;
 
 		const uint32_t address = x + (y << hightmap_size_log2);
 		for(uint32_t j= 0; j < 3; ++j)
