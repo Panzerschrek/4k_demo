@@ -52,7 +52,7 @@ static uint32_t InterpolatedNoise(const uint32_t x, const uint32_t y, const uint
 inline std::array<float, 3> GetTerrainColor(float h)
 {
 	constexpr uint32_t num_colors = 6;
-	static constexpr float borders[num_colors - 1]= { 80.0f, 90.0f, 110.0f, 145.0f, 160.0f };
+	static constexpr float borders[num_colors - 1]= { 83.0f, 90.0f, 110.0f, 145.0f, 160.0f };
 	static constexpr float colors[num_colors][3]
 	{
 		{ 170.0f, 110.0f, 110.0f },
@@ -122,7 +122,8 @@ int main()
 		for(uint32_t i = min_octave; i <= max_octave; ++i)
 			r += InterpolatedNoise(x, y, hightmap_size_log2, i) >> (max_octave  - i);
 
-		const float h = float(r) / 512.0f; // TODO - clamp to water level?
+		// Scale and clamp to water level.
+		const float h = std::max(77.0f, float(r) / 512.0f);
 
 		const uint32_t address = x + (y << hightmap_size_log2);
 		hightmap_data->hightmap[address] = h * 0.75f;
