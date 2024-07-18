@@ -1,3 +1,4 @@
+#include "math.hpp"
 #include "window.hpp"
 
 static int32_t Noise2(const int32_t x, const int32_t y, const int32_t seed)
@@ -76,7 +77,6 @@ int main()
 	
 	DrawableWindow window("4k_terrain", 640, 480);
 
-
 	uint32_t shift = 0;
 
 	while(true)
@@ -90,6 +90,35 @@ int main()
 
 				window.GetPixels()[x + y * window.GetWidth()] = h | (h << 8) | (h << 16);
 			}
+
+		const float cam_position[3]{float(hightmap_size) / 2.0f, 0.0f, 32.0f};
+
+		// Process columns.
+		for(uint32_t x = 0; x < window.GetWidth(); ++x)
+		{
+			const float ray_x = float(x) * (2.0f / float(window.GetWidth())) - 1.0f;
+
+			for(uint32_t i= 1; i < 10; ++i)
+			{
+				const float depth = float(i) * 50.0f;
+				const float terrain_pos[2]{ ray_x * depth, depth };
+
+				const uint8_t h =
+					hightmap[
+						(uint32_t(terrain_pos[0]) & hightmap_size_mask) +
+						((uint32_t(terrain_pos[1]) & hightmap_size_mask) << hightmap_size_log2)];
+
+				const float h_scaled = float(h) / 4.0f;
+
+				const float h_relative_to_camera = h_scaled - cam_position[2];
+
+				const float screen_y = h_relative_to_camera / depth;
+				const int32_t y = int32_t((screen_y + 1.0f) * 0.5f * float(window.GetHeight()));
+
+				if( y >= 0 && y < int32_t(window.GetHeight()))
+					window.GetPixels()[x + y * window.GetWidth()] = 0x00FF00FF;
+			}
+		}
 
 		window.Blit();
 
