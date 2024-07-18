@@ -77,8 +77,8 @@ else()
 	add_compile_options(-fdata-sections -ffunction-sections) # simplify later gc-sections.
 	add_compile_options(-fno-rtti)
 	
-	#add_compile_options(-fno-ident -fno-stack-protector -fomit-frame-pointer -fno-unwind-tables -fno-asynchronous-unwind-tables -falign-functions=1 -mpreferred-stack-boundary=2 -falign-jumps=1 -falign-loops=1)
-
+	add_compile_options(-fno-unwind-tables -fno-asynchronous-unwind-tables)
+	
 	add_link_options(-s)
 	add_link_options("-Wl,--gc-sections")
 	
@@ -86,8 +86,8 @@ else()
 	add_link_options(-nodefaultlibs)
 	add_link_options(-nostartfiles)
 	add_link_options("-Wl,-e___main")
-		
-	#add_link_options("-Wl,--section-alignment,16,--file-alignment,16")
+
+	add_link_options("-Wl,--section-alignment,32,--file-alignment,32")
 
 endif()
 
