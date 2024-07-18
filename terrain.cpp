@@ -95,17 +95,18 @@ int main()
 
 		ZeroMemoryInline(window.GetPixels(), window.GetWidth() * window.GetHeight() * sizeof(DrawableWindow::PixelType));
 
-		const float cam_position[3]{float(hightmap_size) / 2.0f, 0.0f, 32.0f};
+		const float cam_position[3]{float(hightmap_size) / 2.0f, 0.0f, 120.0f};
+		const float additional_y_shift = 0.5f;
 
 		// Process columns.
 		for(uint32_t x = 0; x < window.GetWidth(); ++x)
 		{
 			const float ray_x = float(x) * (2.0f / float(window.GetWidth())) - 1.0f;
 
+			const int32_t max_y = int32_t(window.GetHeight()) - 1;
 			int32_t prev_y = window.GetHeight();
-			for(uint32_t i= 3; i < 100; ++i)
+			for(float depth = 1.0f; depth < float(hightmap_size * 3 / 2); depth *= 1.008f)
 			{
-				const float depth = float(i) * 5.0f;
 				const float terrain_pos[2]{ ray_x * depth, depth };
 
 				const uint8_t h =
@@ -113,19 +114,22 @@ int main()
 						(int32_t(terrain_pos[0]) & hightmap_size_mask) +
 						((int32_t(terrain_pos[1]) & hightmap_size_mask) << hightmap_size_log2)];
 
-				const float h_scaled = float(h) / 4.0f;
+				const float h_scaled = float(h) / 2.0f;
 
 				const float h_relative_to_camera = h_scaled - cam_position[2];
 
 				const float screen_y = h_relative_to_camera / depth;
-				const int32_t y = int32_t((-screen_y + 1.0f) * 0.5f * float(window.GetHeight()));
+				const int32_t y = int32_t((1.0f - screen_y - additional_y_shift) * 0.5f * float(window.GetHeight()));
 
 				const int32_t min_y= std::max(y, 0);
-				for(int32_t dst_y = prev_y - 1; dst_y >= min_y; --dst_y)
+				for(int32_t dst_y = std::min(prev_y - 1, max_y); dst_y >= min_y; --dst_y)
 					window.GetPixels()[x + uint32_t(dst_y) * window.GetWidth()] = h | (h << 8) | (h << 16);
 
 				prev_y = min_y;
 			}
+
+			for(int32_t dst_y = std::min(prev_y - 1, max_y); dst_y >= 0; --dst_y)
+				window.GetPixels()[x + uint32_t(dst_y) * window.GetWidth()] = 0x00000000;
 		}
 
 		window.Blit();
