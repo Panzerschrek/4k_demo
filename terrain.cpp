@@ -76,38 +76,40 @@ int main()
 		hightmap[ x + (y << hightmap_size_log2)] = r >> 9;
 	}
 	
-	DrawableWindow window("4k_terrain", 640, 480);
+	DrawableWindow window("4k_terrain", 1024, 768);
 
-	uint32_t shift = 0;
+	LARGE_INTEGER start_ticks;
+	QueryPerformanceCounter(&start_ticks);
+
+	LARGE_INTEGER ticks_per_second;
+	QueryPerformanceFrequency(&ticks_per_second);
 
 	while(true)
 	{
 		window.ProcessMessages();
 
-		/*
-		for(uint32_t y= 0; y < window.GetHeight(); ++y)
-			for(uint32_t x = 0; x < window.GetWidth(); ++x)
-			{
-				const uint8_t h = hightmap[((x + shift * 2u) & hightmap_size_mask) + (((y + shift) & hightmap_size_mask) << hightmap_size_log2)];
-
-				window.GetPixels()[x + y * window.GetWidth()] = h | (h << 8) | (h << 16);
-			}*/
+		LARGE_INTEGER now;
+		QueryPerformanceCounter(&now);
+		const float time = float(uint32_t(now.QuadPart - start_ticks.QuadPart)) / float(uint32_t(ticks_per_second.QuadPart));
 
 		ZeroMemoryInline(window.GetPixels(), window.GetWidth() * window.GetHeight() * sizeof(DrawableWindow::PixelType));
 
-		const float cam_position[3]{float(hightmap_size) / 2.0f, 0.0f, 120.0f};
+		const float move_speed = 15.0f;
+		const float cam_position[3]{float(hightmap_size) / 2.0f, time * move_speed, 140.0f};
 		const float additional_y_shift = 0.5f;
+
+		const float screen_scale = 0.5f * float(std::max(window.GetWidth(), window.GetHeight()));
 
 		// Process columns.
 		for(uint32_t x = 0; x < window.GetWidth(); ++x)
 		{
-			const float ray_x = float(x) * (2.0f / float(window.GetWidth())) - 1.0f;
+			const float ray_x = (float(x) - float(window.GetWidth()) * 0.5f) / screen_scale;
 
 			const int32_t max_y = int32_t(window.GetHeight()) - 1;
 			int32_t prev_y = window.GetHeight();
-			for(float depth = 1.0f; depth < float(hightmap_size * 3 / 2); depth *= 1.008f)
+			for(float depth = 16.0f; depth < float(hightmap_size * 2); depth *= 1.004f)
 			{
-				const float terrain_pos[2]{ ray_x * depth, depth };
+				const float terrain_pos[2]{ ray_x * depth + cam_position[0], depth + cam_position[1] };
 
 				const uint8_t h =
 					hightmap[
@@ -119,7 +121,7 @@ int main()
 				const float h_relative_to_camera = h_scaled - cam_position[2];
 
 				const float screen_y = h_relative_to_camera / depth;
-				const int32_t y = int32_t((1.0f - screen_y - additional_y_shift) * 0.5f * float(window.GetHeight()));
+				const int32_t y = int32_t((1.0f - screen_y - additional_y_shift) * screen_scale);
 
 				const int32_t min_y= std::max(y, 0);
 				for(int32_t dst_y = std::min(prev_y - 1, max_y); dst_y >= min_y; --dst_y)
@@ -134,8 +136,6 @@ int main()
 
 		window.Blit();
 
-		Sleep(16);
-
-		++shift;
+		Sleep(5);
 	}
 }
