@@ -72,14 +72,23 @@ if(MSVC)
 	add_link_options(/INCREMENTAL:NO)
 
 else()
-	add_compile_options(-Werror -Wall -Wextra -Wconversion)
+	add_compile_options(-Wall -Wextra -Wconversion)
 	add_compile_options(-fvisibility=hidden -fvisibility-inlines-hidden)
 	add_compile_options(-fdata-sections -ffunction-sections) # simplify later gc-sections.
 	add_compile_options(-fno-rtti)
+	
+	#add_compile_options(-fno-ident -fno-stack-protector -fomit-frame-pointer -fno-unwind-tables -fno-asynchronous-unwind-tables -falign-functions=1 -mpreferred-stack-boundary=2 -falign-jumps=1 -falign-loops=1)
 
-	# Clear garbage.
-	string(APPEND CMAKE_EXE_LINKER_FLAGS_RELEASE " -s -Wl,--gc-sections")
-	string(APPEND CMAKE_SHARED_LINKER_FLAGS_RELEASE " -s -Wl,--gc-sections")
+	add_link_options(-s)
+	add_link_options("-Wl,--gc-sections")
+	
+	add_link_options(-nostdlib)
+	add_link_options(-nodefaultlibs)
+	add_link_options(-nostartfiles)
+	add_link_options("-Wl,-e___main")
+		
+	#add_link_options("-Wl,--section-alignment,16,--file-alignment,16")
+
 endif()
 
 add_executable(hello_world hello_world.cpp)
