@@ -84,6 +84,17 @@ inline std::array<float, 3> GetTerrainColor(float h)
 	return { last_color[0], last_color[1], last_color[2] };
 }
 
+
+constexpr uint32_t hightmap_size_log2 = 10;
+constexpr uint32_t hightmap_size = 1 << hightmap_size_log2;
+constexpr uint32_t hightmap_size_mask = hightmap_size - 1;
+
+struct HightmapData
+{
+	float hightmap[hightmap_size * hightmap_size];
+	std::array<float, 3> color_data[hightmap_size * hightmap_size];
+};
+
 #pragma 
 #ifdef DEBUG
 int WINAPI WinMain(HINSTANCE , HINSTANCE, LPSTR, int)
@@ -91,14 +102,10 @@ int WINAPI WinMain(HINSTANCE , HINSTANCE, LPSTR, int)
 int main()
 #endif
 {
-	constexpr uint32_t hightmap_size_log2 = 10;
-	constexpr uint32_t hightmap_size = 1 << hightmap_size_log2;
-	constexpr uint32_t hightmap_size_mask = hightmap_size - 1;
-
 	// For now allocate memory from heap.
 	// Using static array increases executable size.
 	// Using stack array requires stack checking function.
-	float* const hightmap = reinterpret_cast<float*>(VirtualAlloc(nullptr, hightmap_size * hightmap_size * sizeof(float), MEM_COMMIT, PAGE_READWRITE));
+	const auto hightmap_data = reinterpret_cast<HightmapData*>(VirtualAlloc(nullptr, sizeof(HightmapData), MEM_COMMIT, PAGE_READWRITE));
 
 	for(uint32_t y = 0; y < hightmap_size; ++y)
 	for(uint32_t x = 0; x < hightmap_size; ++x)
@@ -110,8 +117,14 @@ int main()
 		for(uint32_t i = min_octave; i <= max_octave; ++i)
 			r += InterpolatedNoise(x, y, hightmap_size_log2, i) >> (max_octave  - i);
 
-		hightmap[ x + (y << hightmap_size_log2)] = float(r) / 512.0f;
-		// TODO - clamp to water level?
+		const float h = float(r) / 512.0f; // TODO - clamp to water level?
+
+		const uint32_t address = x + (y << hightmap_size_log2);
+		hightmap_data->hightmap[address] = h;
+
+		// TODO - add simple sun lighting.
+
+		hightmap_data->color_data[address] = GetTerrainColor(h);
 	}
 	
 	DrawableWindow window("4k_terrain", 1024, 768);
@@ -161,12 +174,13 @@ int main()
 				const float terrain_pos[2]{ ray_vec_rotated[0] + cam_position[0], ray_vec_rotated[1] + cam_position[1] };
 
 				// TODO - floor coordinates here.
-				const float h =
-					hightmap[
-						(int32_t(terrain_pos[0]) & hightmap_size_mask) +
-						((int32_t(terrain_pos[1]) & hightmap_size_mask) << hightmap_size_log2)];
-
 				// TODO - perform interpolation.
+				const uint32_t address =
+					(int32_t(terrain_pos[0]) & hightmap_size_mask) +
+					((int32_t(terrain_pos[1]) & hightmap_size_mask) << hightmap_size_log2);
+
+				const float h = hightmap_data->hightmap[address];
+				
 				const float h_scaled = h * 0.75f;
 
 				const float h_relative_to_camera = h_scaled - cam_position[2];
@@ -174,9 +188,10 @@ int main()
 				const float screen_y = h_relative_to_camera / depth;
 				const int32_t y = int32_t((1.0f - screen_y - additional_y_shift) * screen_scale);
 
-				const auto own_color = GetTerrainColor(h);
+				if(y >= prev_y)
+					continue;
 
-				// TODO - add simple sun lighting.
+				const auto& own_color = hightmap_data->color_data[address];
 				
 				const float fog_factor = depth / max_depth;
 				const float one_minus_fog_factor = 1.0f - fog_factor;
