@@ -67,7 +67,7 @@ int main()
 	for(uint32_t x = 0; x < hightmap_size; ++x)
 	{
 		constexpr uint32_t min_octave = 1;
-		constexpr uint32_t max_octave = 6;
+		constexpr uint32_t max_octave = 7;
 
 		uint32_t r = 0;
 		for(uint32_t i = min_octave; i <= max_octave; ++i)
@@ -95,10 +95,15 @@ int main()
 		ZeroMemoryInline(window.GetPixels(), window.GetWidth() * window.GetHeight() * sizeof(DrawableWindow::PixelType));
 
 		const float move_speed = 15.0f;
-		const float cam_position[3]{0.0f, time * move_speed, 140.0f};
+		const float cam_position[3]{0.0f, time * move_speed, 210.0f};
 		const float additional_y_shift = 0.5f;
 
 		const float screen_scale = 0.5f * float(std::max(window.GetWidth(), window.GetHeight()));
+
+		static constexpr float fog_color[3]{ 240.0f, 200.0f, 200.0f };
+		constexpr DrawableWindow::PixelType fog_color_int = uint32_t(fog_color[0]) | (uint32_t(fog_color[1]) << 8) | (uint32_t(fog_color[2]) << 16);
+
+		const float max_depth = float(hightmap_size * 2);
 
 		const float cam_angle = time * (-0.06f);
 		const float cam_angle_cos = Math::Cos(cam_angle);
@@ -111,7 +116,8 @@ int main()
 
 			const int32_t max_y = int32_t(window.GetHeight()) - 1;
 			int32_t prev_y = window.GetHeight();
-			for(float depth = 16.0f; depth < float(hightmap_size * 2); depth *= 1.004f)
+			// Increase depth exponentialy.
+			for(float depth = 24.0f; depth < max_depth; depth *= 1.004f)
 			{
 				const float ray_vec[2]{ ray_x * depth, depth };
 				const float ray_vec_rotated[2]{ ray_vec[0] * cam_angle_cos - ray_vec[1] * cam_angle_sin, ray_vec[0] * cam_angle_sin + ray_vec[1] * cam_angle_cos };
@@ -122,22 +128,34 @@ int main()
 						(int32_t(terrain_pos[0]) & hightmap_size_mask) +
 						((int32_t(terrain_pos[1]) & hightmap_size_mask) << hightmap_size_log2)];
 
-				const float h_scaled = float(h) / 2.0f;
+				const float h_scaled = float(h) * 0.75f;
 
 				const float h_relative_to_camera = h_scaled - cam_position[2];
 
 				const float screen_y = h_relative_to_camera / depth;
 				const int32_t y = int32_t((1.0f - screen_y - additional_y_shift) * screen_scale);
 
+				const float own_color[3]{ float(h), float(h), float(h)};
+				
+				const float fog_factor = depth / max_depth;
+				const float one_minus_fog_factor = 1.0f - fog_factor;
+
+				DrawableWindow::PixelType color = 0x000000;
+				for(uint32_t j = 0; j < 3; ++j)
+				{
+					float color_mixed = own_color[j] * one_minus_fog_factor + fog_color[j] * fog_factor;
+					color |= uint32_t(color_mixed) << (j << 3);
+				}
+
 				const int32_t min_y= std::max(y, 0);
 				for(int32_t dst_y = std::min(prev_y - 1, max_y); dst_y >= min_y; --dst_y)
-					window.GetPixels()[x + uint32_t(dst_y) * window.GetWidth()] = h | (h << 8) | (h << 16);
+					window.GetPixels()[x + uint32_t(dst_y) * window.GetWidth()] = color;
 
 				prev_y = min_y;
 			}
 
 			for(int32_t dst_y = std::min(prev_y - 1, max_y); dst_y >= 0; --dst_y)
-				window.GetPixels()[x + uint32_t(dst_y) * window.GetWidth()] = 0x00000000;
+				window.GetPixels()[x + uint32_t(dst_y) * window.GetWidth()] = fog_color_int;
 		}
 
 		window.Blit();
