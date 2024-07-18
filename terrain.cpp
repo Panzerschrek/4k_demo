@@ -22,7 +22,7 @@ static int32_t Noise2(const int32_t x, const int32_t y, const int32_t seed)
 	return ((n * (n * n * 60493 + 19990303) + 1376312589) & 0x7fffffff) >> 15;
 }
 
-static uint32_t InterpolatedNoise(const uint32_t x, const uint32_t y, const uint32_t size_log2, const uint32_t k)
+static inline uint32_t InterpolatedNoise(const uint32_t x, const uint32_t y, const uint32_t size_log2, const uint32_t k)
 {
 	const uint32_t step = 1 << k;
 	const uint32_t mask = ((1 << size_log2) >> k) - 1; // This makes noise tileable.
@@ -49,10 +49,10 @@ static uint32_t InterpolatedNoise(const uint32_t x, const uint32_t y, const uint
 	return uint32_t((interp_x[1] * dx + interp_x[0] * (step - dx)) >> (k + k));
 }
 
-static std::array<float, 3> GetTerrainColor(float h)
+static std::array<float, 3> GetTerrainColor(const float h)
 {
 	constexpr uint32_t num_colors = 6;
-	static constexpr float borders[num_colors - 1]= { 83.0f, 90.0f, 110.0f, 145.0f, 160.0f };
+	static constexpr float borders[num_colors]= { 83.0f, 90.0f, 110.0f, 145.0f, 160.0f, 1000000.0 };
 	static constexpr float colors[num_colors][3]
 	{
 		{ 170.0f, 110.0f, 110.0f },
@@ -63,26 +63,21 @@ static std::array<float, 3> GetTerrainColor(float h)
 		{ 255.0f, 255.0f, 255.0f },
 	};
 
-	const float half_border = 7.0f;
+	constexpr float half_border = 7.0f;
 	
-	for(uint32_t i = 0; i < num_colors - 1; ++i)
+	for(uint32_t i = 0; i < num_colors; ++i)
 	{
 		if(h <= borders[i])
 		{
-			const float up_dist = borders[i] - h;
-			if(up_dist < half_border)
-			{
-				const float k = up_dist / half_border;
-				const float one_minus_k = 1.0f - k;
-				return { colors[i][0] * k + colors[i+1][0] * one_minus_k, colors[i][1] * k + colors[i + 1][1] * one_minus_k, colors[i][2] * k + colors[i + 1][2] * one_minus_k };
-			}
-			else
-				return {colors[i][0], colors[i][1], colors[i][2]};
+			const float k = std::min(1.0f, (borders[i] - h) / half_border);
+			const float one_minus_k = 1.0f - k;
+			return { colors[i][0] * k + colors[i+1][0] * one_minus_k, colors[i][1] * k + colors[i+1][1] * one_minus_k, colors[i][2] * k + colors[i+1][2] * one_minus_k };
 		}
 	}
 
-	const auto& last_color = colors[num_colors - 1];
-	return { last_color[0], last_color[1], last_color[2] };
+	// Do not return here - assuming last color interval is reached.
+	// Save a couple of bytes for "return" by doing that.
+	__assume(false);
 }
 
 inline float InvSqrt(const float x)
@@ -112,7 +107,7 @@ int main()
 	// Using stack array requires stack checking function.
 	const auto hightmap_data = reinterpret_cast<HightmapData*>(VirtualAlloc(nullptr, sizeof(HightmapData), MEM_COMMIT, PAGE_READWRITE));
 
-	constexpr float terrain_scale = 0.75f;
+	constexpr float terrain_scale = 0.5f;
 
 	for(uint32_t y = 0; y < hightmap_size; ++y)
 	for(uint32_t x = 0; x < hightmap_size; ++x)
@@ -130,11 +125,7 @@ int main()
 		const uint32_t address = x + (y << hightmap_size_log2);
 		hightmap_data->hightmap[address] = h * terrain_scale;
 
-		// TODO - add simple sun lighting.
-
-		const auto base_color = GetTerrainColor(h);
-
-		hightmap_data->color_data[address] = base_color;
+		hightmap_data->color_data[address] = GetTerrainColor(h);
 	}
 
 	constexpr float sun_dir[3]{ 0.7f, 0.3f, 0.5f };
@@ -217,11 +208,9 @@ int main()
 		QueryPerformanceCounter(&now);
 		const float time = float(uint32_t(now.QuadPart - start_ticks.QuadPart)) / float(uint32_t(ticks_per_second.QuadPart));
 
-		ZeroMemoryInline(window.GetPixels(), window.GetWidth() * window.GetHeight() * sizeof(DrawableWindow::PixelType));
-
 		const float move_speed = 15.0f;
-		const float cam_position[3]{0.0f, time * move_speed, 210.0f};
-		const float additional_y_shift = 0.5f;
+		const float cam_position[3]{0.0f, time * move_speed, 140.0f};
+		const float additional_y_shift = 0.6f;
 
 		const float screen_scale = 0.5f * float(std::max(window.GetWidth(), window.GetHeight()));
 
@@ -238,8 +227,10 @@ int main()
 		{
 			const float ray_x = (float(x) - float(window.GetWidth()) * 0.5f) / screen_scale;
 
-			const int32_t max_y = int32_t(window.GetHeight()) - 1;
+			const auto dst_column = window.GetPixels() + x;
+
 			int32_t prev_y = window.GetHeight();
+
 			// Increase depth exponentialy.
 			for(float depth = 24.0f; depth < max_depth; depth *= 1.004f)
 			{
@@ -255,10 +246,8 @@ int main()
 
 				const float h = hightmap_data->hightmap[address];
 
-				const float h_relative_to_camera = h - cam_position[2];
-
-				const float screen_y = h_relative_to_camera / depth;
-				const int32_t y = int32_t((1.0f - screen_y - additional_y_shift) * screen_scale);
+				const float screen_y = (h - cam_position[2]) / depth;
+				const int32_t y = int32_t(((1.0f - additional_y_shift) - screen_y) * screen_scale);
 
 				if(y >= prev_y)
 					continue;
@@ -276,8 +265,8 @@ int main()
 				}
 
 				const int32_t min_y= std::max(y, 0);
-				for(int32_t dst_y = std::min(prev_y - 1, max_y); dst_y >= min_y; --dst_y)
-					window.GetPixels()[x + uint32_t(dst_y) * window.GetWidth()] = color;
+				for(int32_t dst_y = prev_y - 1; dst_y >= min_y; --dst_y)
+					dst_column[uint32_t(dst_y) * window.GetWidth()] = color;
 
 				prev_y = min_y;
 			}
@@ -285,13 +274,15 @@ int main()
 			// Fill remaining sky with fog.
 			{
 				constexpr DrawableWindow::PixelType fog_color_int = uint32_t(color_fog[0]) | (uint32_t(color_fog[1]) << 8) | (uint32_t(color_fog[2]) << 16);
-				for(int32_t dst_y = std::min(prev_y - 1, max_y); dst_y >= 0; --dst_y)
-					window.GetPixels()[x + uint32_t(dst_y) * window.GetWidth()] = fog_color_int;
+				for(int32_t dst_y = prev_y - 1; dst_y >= 0; --dst_y)
+					dst_column[uint32_t(dst_y) * window.GetWidth()] = fog_color_int;
 			}
 		}
 
 		window.Blit();
 
-		Sleep(5);
+		// Save some bytes by avoiding sleeping.
+		// Sleeping isn't strictly necessary, since computations to render terrain are already pretty heavy.
+		// Sleep(5);
 	}
 }
