@@ -61,11 +61,23 @@ inline std::array<float, 3> GetTerrainColor(float h)
 		{ 128.0f, 128.0f, 128.0f },
 		{ 255.0f, 255.0f, 255.0f },
 	};
+
+	const float half_border = 5.0f;
 	
 	for(uint32_t i = 0; i < num_colors - 1; ++i)
 	{
 		if(h <= borders[i])
-			return {colors[i][0], colors[i][1], colors[i][2]};
+		{
+			const float up_dist = borders[i] - h;
+			if(up_dist < half_border)
+			{
+				const float k = up_dist / half_border;
+				const float one_minus_k = 1.0f - k;
+				return { colors[i][0] * k + colors[i+1][0] * one_minus_k, colors[i][1] * k + colors[i + 1][1] * one_minus_k, colors[i][2] * k + colors[i + 1][2] * one_minus_k };
+			}
+			else
+				return {colors[i][0], colors[i][1], colors[i][2]};
+		}
 	}
 
 	const auto& last_color = colors[num_colors - 1];
