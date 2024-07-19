@@ -55,7 +55,7 @@ static std::array<float, 3> GetTerrainColor(const float h)
 	static constexpr float borders[num_colors]= { 83.0f, 90.0f, 110.0f, 145.0f, 160.0f, 1000000.0 };
 	static constexpr float colors[num_colors][3]
 	{
-		{ 170.0f, 110.0f, 110.0f },
+		{ 200.0f, 120.0f, 110.0f },
 		{ 60.0f, 170.0f, 170.0f },
 		{ 70.0f, 190.0f, 70.0f },
 		{ 80.0f, 128.0f, 80.0f },
@@ -85,7 +85,7 @@ inline float InvSqrt(const float x)
 	return _mm_cvtss_f32( _mm_rsqrt_ss(_mm_set_ps1(x)) );
 }
 
-constexpr uint32_t hightmap_size_log2 = 10;
+constexpr uint32_t hightmap_size_log2 = 11;
 constexpr uint32_t hightmap_size = 1 << hightmap_size_log2;
 constexpr uint32_t hightmap_size_mask = hightmap_size - 1;
 
@@ -107,13 +107,13 @@ int main()
 	// Using stack array requires stack checking function.
 	const auto hightmap_data = reinterpret_cast<HightmapData*>(VirtualAlloc(nullptr, sizeof(HightmapData), MEM_COMMIT, PAGE_READWRITE));
 
-	constexpr float terrain_scale = 0.5f;
+	constexpr float terrain_scale = 1.0f;
 
 	for(uint32_t y = 0; y < hightmap_size; ++y)
 	for(uint32_t x = 0; x < hightmap_size; ++x)
 	{
-		constexpr uint32_t min_octave = 1;
-		constexpr uint32_t max_octave = 7;
+		constexpr uint32_t min_octave = 2;
+		constexpr uint32_t max_octave = 8;
 
 		uint32_t r = 0;
 		for(uint32_t i = min_octave; i <= max_octave; ++i)
@@ -128,7 +128,7 @@ int main()
 		hightmap_data->color_data[address] = GetTerrainColor(h);
 	}
 
-	constexpr float sun_dir[3]{ 0.7f, 0.3f, 0.5f };
+	constexpr float sun_dir[3]{ 0.7f, 0.3f, 0.6f };
 	constexpr float sun_dir_squared = sun_dir[0] * sun_dir[0] + sun_dir[1] * sun_dir[1] + sun_dir[2] * sun_dir[2];
 
 	for(uint32_t y = 0; y < hightmap_size; ++y)
@@ -171,7 +171,8 @@ int main()
 				pos[1] += sun_dir[1];
 				pos[2] += sun_dir[2];
 
-				// TODO - use floor here.
+				// It's fine to use conversion to int as floor operation here,
+				// since coordinates are non-negative (sun vector is positive).
 				const uint32_t address =
 					(int32_t(pos[0]) & hightmap_size_mask) +
 					((int32_t(pos[1]) & hightmap_size_mask) << hightmap_size_log2);
@@ -208,15 +209,18 @@ int main()
 		QueryPerformanceCounter(&now);
 		const float time = float(uint32_t(now.QuadPart - start_ticks.QuadPart)) / float(uint32_t(ticks_per_second.QuadPart));
 
-		const float move_speed = 15.0f;
-		const float cam_position[3]{0.0f, time * move_speed, 140.0f};
-		const float additional_y_shift = 0.6f;
+		const float move_speed = 40.0f;
+
+		// Use initial coordinates far from zero in order to avoid incorrect hightmap coordinates rounding for negative coordinates.
+		const float cam_initial_shift = 8.0f * float(hightmap_size);
+		const float cam_position[3]{ cam_initial_shift, cam_initial_shift + time * move_speed, 340.0f};
+		const float additional_y_shift = 0.7f;
 
 		const float screen_scale = 0.5f * float(std::max(window.GetWidth(), window.GetHeight()));
 
 		static constexpr float color_fog[3]{ 240.0f, 200.0f, 200.0f };
 
-		const float max_depth = float(hightmap_size * 2);
+		const float max_depth = float(hightmap_size) * 0.75f;
 
 		const float cam_angle = time * (-0.06f);
 		const float cam_angle_cos = Math::Cos(cam_angle);
@@ -232,14 +236,14 @@ int main()
 			int32_t prev_y = window.GetHeight();
 
 			// Increase depth exponentialy.
-			for(float depth = 24.0f; depth < max_depth; depth *= 1.004f)
+			for(float depth = 80.0f; depth < max_depth; depth *= 1.0035f)
 			{
 				const float ray_vec[2]{ ray_x * depth, depth };
 				const float ray_vec_rotated[2]{ ray_vec[0] * cam_angle_cos - ray_vec[1] * cam_angle_sin, ray_vec[0] * cam_angle_sin + ray_vec[1] * cam_angle_cos };
 				const float terrain_pos[2]{ ray_vec_rotated[0] + cam_position[0], ray_vec_rotated[1] + cam_position[1] };
 
-				// TODO - floor coordinates here.
-				// TODO - perform interpolation.
+				// Use conversion to int rather than proper floor.
+				// It isn't correct for negative numbers, but fine, since we shift camera coordinates to positive values.
 				const uint32_t address =
 					(int32_t(terrain_pos[0]) & hightmap_size_mask) +
 					((int32_t(terrain_pos[1]) & hightmap_size_mask) << hightmap_size_log2);
