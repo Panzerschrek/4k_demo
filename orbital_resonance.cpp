@@ -158,54 +158,52 @@ int main()
 			++block_index_linear;
 
 			// Process messages and update window only after successfull sound output.
-			if(block_index_linear % 2 == 0)
+	
+			window.ProcessMessages();
+
+			// Draw.
+			ZeroMemoryInline(window.GetPixels(), window.GetWidth() * window.GetHeight() * sizeof(DrawableWindow::PixelType));
+
+			const uint32_t center_x = window.GetWidth() / 2u;
+			const uint32_t center_y = window.GetHeight() / 2u;
+
+			// Alignment line.
+			// A note is emitted when a planet crosses it.
+			constexpr DrawableWindow::PixelType lines_color = 0x00202020;
+			for(uint32_t y = center_y; y < window.GetHeight(); ++y)
+				window.GetPixels()[center_x + y * window.GetWidth()] = lines_color;
+
+			// Sun.
+			FillCircle(window, center_x, center_y, 24, 0x00FFFF40);
+
+			for(int32_t beat_n = c_start_beat; beat_n <= c_end_beat; ++beat_n)
 			{
-				window.ProcessMessages();
+				const float orbit_radius = float(beat_n) * 31.5f;
+				const int32_t planet_radius = 39u / uint32_t(3 + c_end_beat - beat_n);
 
-				// Draw.
-				ZeroMemoryInline(window.GetPixels(), window.GetWidth() * window.GetHeight() * sizeof(DrawableWindow::PixelType));
+				const float phase = float(t) * (Math::tau / float(sampling_frequency) * c_base_freq / c_beat_period) / float(beat_n);
+				const int32_t dx = int32_t(Math::Sin(phase) * orbit_radius);
+				const int32_t dy = int32_t(Math::Cos(phase) * orbit_radius);
 
-				const uint32_t center_x = window.GetWidth() / 2u;
-				const uint32_t center_y = window.GetHeight() / 2u;
+				// Orbit circle.
+				DrawCircle(window, center_x, center_y, int32_t(orbit_radius), lines_color);
 
-				// Alignment line.
-				// A note is emitted when a planet crosses it.
-				constexpr DrawableWindow::PixelType lines_color = 0x00202020;
-				for(uint32_t y = center_y; y < window.GetHeight(); ++y)
-					window.GetPixels()[center_x + y * window.GetWidth()] = lines_color;
-
-				// Sun.
-				FillCircle(window, center_x, center_y, 24, 0x00FFFF40);
-
-				for(int32_t beat_n = c_start_beat; beat_n <= c_end_beat; ++beat_n)
+				static constexpr DrawableWindow::PixelType colors[c_end_beat - c_start_beat + 1]
 				{
-					const float orbit_radius = float(beat_n) * 31.5f;
-					const int32_t planet_radius = 39u / uint32_t(3 + c_end_beat - beat_n);
+					0x00D02020,
+					0x00D08020,
+					0x00E0E020,
+					0x0020D020,
+					0x0020D0D0,
+					0x002020D0,
+					0x006040D0,
+					0x00D020D0,
+				};
 
-					const float phase = float(t) * (Math::tau / float(sampling_frequency) * c_base_freq / c_beat_period) / float(beat_n);
-					const int32_t dx = int32_t(Math::Sin(phase) * orbit_radius);
-					const int32_t dy = int32_t(Math::Cos(phase) * orbit_radius);
-
-					// Orbit circle.
-					DrawCircle(window, center_x, center_y, int32_t(orbit_radius), lines_color);
-
-					static constexpr DrawableWindow::PixelType colors[c_end_beat - c_start_beat + 1]
-					{
-						0x00D02020,
-						0x00D08020,
-						0x00E0E020,
-						0x0020D020,
-						0x0020D0D0,
-						0x002020D0,
-						0x006040D0,
-						0x00D020D0,
-					};
-
-					FillCircle(window, int32_t(center_x) + dx, int32_t(center_y) + dy, planet_radius, colors[beat_n - c_start_beat]);
-				}
-
-				window.Blit();
+				FillCircle(window, int32_t(center_x) + dx, int32_t(center_y) + dy, planet_radius, colors[beat_n - c_start_beat]);
 			}
+
+			window.Blit();
 		}
 		else
 			Sleep(1);
