@@ -5,10 +5,9 @@
 constexpr uint32_t sampling_frequency = 22050;
 using SampleType = int16_t;
 
-// Make this size at least a good fraction of the sample rate.
-constexpr uint32_t chunk_size = 1024;
-// Use double buffering.
-constexpr uint32_t num_headers = 3;
+// Number of buffers and chunk size are tuned for minimal latency without sound cracks.
+constexpr uint32_t chunk_size = 512;
+constexpr uint32_t num_headers = 4;
 
 using BufferData = SampleType[num_headers][chunk_size];
 
@@ -29,7 +28,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 int main()
 #endif
 {
-	DrawableWindow window("4k_sound", 320, 200);
+	DrawableWindow window("4k_sound", 400, 300);
 
 	// For now allocate memory from heap.
 	// Using static array increases executable size.
@@ -58,30 +57,34 @@ int main()
 		// Fill any buffers that are "done"
 		if((header.dwFlags & WHDR_DONE) != 0)
 		{
+			// Clear previous usage.
+			waveOutUnprepareHeader(wave_out, &header, sizeof(WAVEHDR));
+
 			header.dwFlags = 0;
 			header.lpData = reinterpret_cast<LPSTR>(buffer_data[block_index]);
 			// Calculate a new chunk of data
 			for(uint32_t i = 0; i < chunk_size; ++i)
 			{
-				constexpr float amplitude = float(std::numeric_limits<SampleType>::max()) * 0.95f;
-				buffer_data[block_index][i] = SampleType(int32_t(Math::Cos(float(t) * 0.15f) * amplitude));
-				window.GetPixels()[t % screen_area] = buffer_data[block_index][i];
+				constexpr float amplitude = float(std::numeric_limits<SampleType>::max()) * 0.5f; // Not too loud.
+				constexpr float scale = 880.0f * Math::tau / float(sampling_frequency);
+				buffer_data[block_index][i] = SampleType(int32_t(Math::Cos(float(t) * scale) * amplitude));
+				window.GetPixels()[t % screen_area] = DrawableWindow::PixelType(buffer_data[block_index][i]);
 				++t;
 			}
 			
 			waveOutPrepareHeader(wave_out, &header, sizeof(WAVEHDR));
 			waveOutWrite(wave_out, &header, sizeof(WAVEHDR));
-			waveOutUnprepareHeader(wave_out, &header, sizeof(WAVEHDR));
 
 			++block_index_linear;
+
+			// Process messages and update window only after successfull sound output.
+			if(block_index_linear % 4 == 0)
+			{
+				window.ProcessMessages();
+				window.Blit();
+			}
 		}
 		else
 			Sleep(1);
-
-		if(block_index_linear % 3 == 0)
-		{
-			window.ProcessMessages();
-			window.Blit();
-		}
 	}
 }
