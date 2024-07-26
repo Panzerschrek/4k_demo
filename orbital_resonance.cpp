@@ -22,7 +22,26 @@ static constexpr const WAVEFORMATEX wfx
 	0 // Extra size.
 };
 
-constexpr float c_beat_period = 64.0f;
+// Assuming no circle is outside window borders.
+static void DrawCircle(
+	DrawableWindow& window,
+	const int32_t center_x, const int32_t center_y,
+	const int32_t radius,
+	const DrawableWindow::PixelType color)
+{
+	const uint32_t w = window.GetWidth();
+	const auto pixels = window.GetPixels();
+	for(int32_t dy = -radius; dy <= radius; ++dy)
+	for(int32_t dx = -radius; dx <= radius; ++dx)
+	{
+		if(dx * dx + dy * dy > radius * radius)
+			continue;
+
+		pixels[uint32_t(center_x + dx) + uint32_t(center_y + dy) * w] = color;
+	}
+}
+
+constexpr float c_beat_period = 64.0f; // TODO - make it bigger.
 constexpr float c_beat_fraction = 1.0f / 8.0f;
 constexpr int32_t c_start_beat = 2;
 constexpr int32_t c_end_beat = 9;
@@ -36,7 +55,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 int main()
 #endif
 {
-	DrawableWindow window("4k_sound", 400, 300);
+	DrawableWindow window("4k_sound", 800, 600);
 
 	// For now allocate memory from heap.
 	// Using static array increases executable size.
@@ -104,9 +123,30 @@ int main()
 			++block_index_linear;
 
 			// Process messages and update window only after successfull sound output.
-			if(block_index_linear % 4 == 0)
+			if(block_index_linear % 2 == 0)
 			{
 				window.ProcessMessages();
+
+				// Draw.
+				ZeroMemoryInline(window.GetPixels(), window.GetWidth() * window.GetHeight() * sizeof(DrawableWindow::PixelType));
+
+				const uint32_t center_x = window.GetWidth() / 2u;
+				const uint32_t center_y = window.GetHeight() / 2u;
+				// Sun.
+				DrawCircle(window, center_x, center_y, 16, 0x00FFFF00);
+
+				for(int32_t beat_n = c_start_beat; beat_n <= c_end_beat; ++beat_n)
+				{
+					const float orbit_radius = float(beat_n) * 30;
+					const int32_t planet_radius = 6;
+
+					const float phase = float(t) * (Math::tau / float(sampling_frequency) * c_base_freq / c_beat_period) / float(beat_n);
+					const int32_t dx = int32_t(Math::Cos(phase) * orbit_radius);
+					const int32_t dy = int32_t(Math::Sin(phase) * orbit_radius);
+
+					DrawCircle(window, int32_t(center_x) + dx, int32_t(center_y) + dy, planet_radius, 0x00FFFF00);
+				}
+
 				window.Blit();
 			}
 		}
