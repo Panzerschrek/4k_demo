@@ -90,7 +90,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 int main()
 #endif
 {
-	DrawableWindow window("4k_sound", 800, 600);
+	DrawableWindow window("4k_orbital_resonance", 640, 640);
 
 	// For now allocate memory from heap.
 	// Using static array increases executable size.
@@ -178,8 +178,8 @@ int main()
 
 			for(int32_t beat_n = c_start_beat; beat_n <= c_end_beat; ++beat_n)
 			{
-				const float orbit_radius = float(beat_n) * 31.5f;
-				const int32_t planet_radius = 39u / uint32_t(3 + c_end_beat - beat_n);
+				const float orbit_radius = float(beat_n) * 33.0f;
+				const int32_t planet_radius = 44u / uint32_t(3 + c_end_beat - beat_n);
 
 				const float phase = float(t) * (Math::tau / float(sampling_frequency) * c_base_freq / c_beat_period) / float(beat_n);
 				const int32_t dx = int32_t(Math::Sin(phase) * orbit_radius);
