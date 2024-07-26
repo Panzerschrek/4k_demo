@@ -78,3 +78,6 @@ add_executable(simple_window WIN32 simple_window.cpp)
 add_executable(mandelbrot WIN32 mandelbrot.cpp)
 add_executable(tetris WIN32 tetris.cpp)
 add_executable(terrain WIN32 terrain.cpp)
+add_executable(sound_out WIN32 sound_out.cpp)
+
+target_link_libraries(sound_out PRIVATE winmm.lib)
