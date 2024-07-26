@@ -133,6 +133,11 @@ int main()
 				const uint32_t center_x = window.GetWidth() / 2u;
 				const uint32_t center_y = window.GetHeight() / 2u;
 
+				// Alignment line.
+				// A note is emitted when a planet crosses it.
+				for(uint32_t y = center_y; y < window.GetHeight(); ++y)
+					window.GetPixels()[center_x + y * window.GetWidth()] = 0x00202020;
+
 				// Sun.
 				DrawCircle(window, center_x, center_y, 24, 0x00FFFF40);
 
