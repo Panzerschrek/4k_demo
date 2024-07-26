@@ -1,8 +1,9 @@
+#include <limits>
 #include "math.hpp"
 #include "window.hpp"
 
 constexpr uint32_t sampling_frequency = 22050;
-using SampleType = int8_t;
+using SampleType = int16_t;
 
 // Make this size at least a good fraction of the sample rate.
 constexpr uint32_t chunk_size = 1024;
@@ -22,7 +23,18 @@ int main()
 	uint32_t iteration = 0;
 
 	HWAVEOUT wave_out = 0;
-	WAVEFORMATEX wfx{ WAVE_FORMAT_PCM, 1, sampling_frequency, sampling_frequency * sizeof(SampleType), alignof(SampleType), 8 * sizeof(SampleType), 0 };
+
+	WAVEFORMATEX wfx
+	{
+		WAVE_FORMAT_PCM, // Format tag.
+		1, // Number of channels.
+		sampling_frequency, // Sample rate
+		sampling_frequency * sizeof(SampleType), // Bytes per second.
+		alignof(SampleType), // Alignment of block.
+		8 * sizeof(SampleType), // Bits per sample.
+		0 // Extra size.
+	};
+
 	waveOutOpen(&wave_out, WAVE_MAPPER, &wfx, 0, 0, CALLBACK_NULL);
 
 	WAVEHDR headers[num_headers];
@@ -39,8 +51,6 @@ int main()
 	}
 
 	uint32_t block_index = 0;
-	// This demonstrates sending data as chunks into the output headers
-	// Note no callback is needed because we test the dwFlags for WHDR_DONE
 	uint32_t t = 0;
 	while(true)
 	{
@@ -53,7 +63,8 @@ int main()
 			// Calculate a new chunk of data
 			for(uint32_t i = 0; i < chunk_size; ++i)
 			{
-				buffer_data[block_index][i] = SampleType(int32_t(Math::Cos(float(t) * 0.05f) * 64.0f));
+				constexpr float amplitude = float(std::numeric_limits<SampleType>::max()) * 0.95f;
+				buffer_data[block_index][i] = SampleType(int32_t(Math::Cos(float(t) * 0.2f) * amplitude));
 				++t;
 			}
 			
