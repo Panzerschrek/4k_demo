@@ -41,7 +41,7 @@ static void DrawCircle(
 	}
 }
 
-constexpr float c_beat_period = 64.0f; // TODO - make it bigger.
+constexpr float c_beat_period = 96.0f;
 constexpr float c_beat_fraction = 1.0f / 8.0f;
 constexpr int32_t c_start_beat = 2;
 constexpr int32_t c_end_beat = 9;
@@ -132,19 +132,32 @@ int main()
 
 				const uint32_t center_x = window.GetWidth() / 2u;
 				const uint32_t center_y = window.GetHeight() / 2u;
+
 				// Sun.
-				DrawCircle(window, center_x, center_y, 16, 0x00FFFF00);
+				DrawCircle(window, center_x, center_y, 24, 0x00FFFF40);
 
 				for(int32_t beat_n = c_start_beat; beat_n <= c_end_beat; ++beat_n)
 				{
-					const float orbit_radius = float(beat_n) * 30;
-					const int32_t planet_radius = 6;
+					const float orbit_radius = float(beat_n) * 31.5f;
+					const int32_t planet_radius = 39u / uint32_t(3 + c_end_beat - beat_n);
 
 					const float phase = float(t) * (Math::tau / float(sampling_frequency) * c_base_freq / c_beat_period) / float(beat_n);
-					const int32_t dx = int32_t(Math::Cos(phase) * orbit_radius);
-					const int32_t dy = int32_t(Math::Sin(phase) * orbit_radius);
+					const int32_t dx = int32_t(Math::Sin(phase) * orbit_radius);
+					const int32_t dy = int32_t(Math::Cos(phase) * orbit_radius);
 
-					DrawCircle(window, int32_t(center_x) + dx, int32_t(center_y) + dy, planet_radius, 0x00FFFF00);
+					static constexpr DrawableWindow::PixelType colors[c_end_beat - c_start_beat + 1]
+					{
+						0x00D02020,
+						0x00D08020,
+						0x00E0E020,
+						0x0020D020,
+						0x0020D0D0,
+						0x002020D0,
+						0x006040D0,
+						0x00D020D0,
+					};
+
+					DrawCircle(window, int32_t(center_x) + dx, int32_t(center_y) + dy, planet_radius, colors[beat_n - c_start_beat]);
 				}
 
 				window.Blit();
