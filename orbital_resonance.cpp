@@ -1,4 +1,6 @@
 #include <limits>
+#include <utility>
+#include <immintrin.h>
 #include "math.hpp"
 #include "window.hpp"
 
@@ -23,7 +25,7 @@ static constexpr const WAVEFORMATEX wfx
 };
 
 // Assuming no circle is outside window borders.
-static void DrawCircle(
+static void FillCircle(
 	DrawableWindow& window,
 	const int32_t center_x, const int32_t center_y,
 	const int32_t radius,
@@ -38,6 +40,39 @@ static void DrawCircle(
 			continue;
 
 		pixels[uint32_t(center_x + dx) + uint32_t(center_y + dy) * w] = color;
+	}
+}
+
+static inline float Sqrt(const float x)
+{
+	return _mm_cvtss_f32(_mm_sqrt_ss(_mm_set_ps1(x)));
+}
+
+static void DrawCircle(
+	DrawableWindow& window,
+	const int32_t center_x, const int32_t center_y,
+	const int32_t radius,
+	const DrawableWindow::PixelType color)
+{
+	const uint32_t w = window.GetWidth();
+	const auto pixels = window.GetPixels();
+
+	// Ugly cicrles rasterization algorithm.
+	// It's uses floating point square root to work.
+	// It would be better to use something like Bresenham's algorithm.
+
+	int32_t prev_dy = 0;
+	for(int32_t dx = -radius; dx <= radius; ++dx)
+	{
+		const int32_t dy = int32_t(Sqrt(float(radius * radius - dx * dx)));
+
+		for(int32_t yy = std::min(prev_dy, dy); yy <= std::max(prev_dy, dy); ++yy)
+		{
+			pixels[uint32_t(center_x + dx) + uint32_t(center_y + yy) * w] = color;
+			pixels[uint32_t(center_x + dx) + uint32_t(center_y - yy) * w] = color;
+		}
+
+		prev_dy = dy;
 	}
 }
 
@@ -135,11 +170,12 @@ int main()
 
 				// Alignment line.
 				// A note is emitted when a planet crosses it.
+				constexpr DrawableWindow::PixelType lines_color = 0x00202020;
 				for(uint32_t y = center_y; y < window.GetHeight(); ++y)
-					window.GetPixels()[center_x + y * window.GetWidth()] = 0x00202020;
+					window.GetPixels()[center_x + y * window.GetWidth()] = lines_color;
 
 				// Sun.
-				DrawCircle(window, center_x, center_y, 24, 0x00FFFF40);
+				FillCircle(window, center_x, center_y, 24, 0x00FFFF40);
 
 				for(int32_t beat_n = c_start_beat; beat_n <= c_end_beat; ++beat_n)
 				{
@@ -149,6 +185,9 @@ int main()
 					const float phase = float(t) * (Math::tau / float(sampling_frequency) * c_base_freq / c_beat_period) / float(beat_n);
 					const int32_t dx = int32_t(Math::Sin(phase) * orbit_radius);
 					const int32_t dy = int32_t(Math::Cos(phase) * orbit_radius);
+
+					// Orbit circle.
+					DrawCircle(window, center_x, center_y, int32_t(orbit_radius), lines_color);
 
 					static constexpr DrawableWindow::PixelType colors[c_end_beat - c_start_beat + 1]
 					{
@@ -162,7 +201,7 @@ int main()
 						0x00D020D0,
 					};
 
-					DrawCircle(window, int32_t(center_x) + dx, int32_t(center_y) + dy, planet_radius, colors[beat_n - c_start_beat]);
+					FillCircle(window, int32_t(center_x) + dx, int32_t(center_y) + dy, planet_radius, colors[beat_n - c_start_beat]);
 				}
 
 				window.Blit();
