@@ -3,15 +3,27 @@ name: WindowsBuild
 on: [push]
 
 jobs:
-  build_windows:
+  build_windows_x64:
     runs-on: windows-2019
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: recursive
     - name: build project
-      run: ./ci/build_release_windows.bat
+      run: ./ci/build_release_windows_64.bat
     - uses: actions/upload-artifact@v3
       with:
-        name: 4k_executables_windows
+        name: 4k_executables_windows_x64
+        path: build_dir/*.exe
+  build_windows_x86:
+    runs-on: windows-2019
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        submodules: recursive
+    - name: build project
+      run: ./ci/build_release_windows_32.bat
+    - uses: actions/upload-artifact@v3
+      with:
+        name: 4k_executables_windows_x86
         path: build_dir/*.exe
