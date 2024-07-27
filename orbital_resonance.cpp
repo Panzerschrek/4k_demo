@@ -43,11 +43,6 @@ static void FillCircle(
 	}
 }
 
-static inline float Sqrt(const float x)
-{
-	return _mm_cvtss_f32(_mm_sqrt_ss(_mm_set_ps1(x)));
-}
-
 static void DrawCircle(
 	DrawableWindow& window,
 	const int32_t center_x, const int32_t center_y,
@@ -57,23 +52,23 @@ static void DrawCircle(
 	const uint32_t w = window.GetWidth();
 	const auto pixels = window.GetPixels();
 
-	// Ugly cicrles rasterization algorithm.
-	// It's uses floating point square root to work.
-	// It would be better to use something like Bresenham's algorithm.
-
-	int32_t prev_dy = 0;
-	for(int32_t dx = -radius; dx <= radius; ++dx)
+	int32_t dy = radius;
+	for (int32_t dx = 0; dx <= radius; ++dx)
 	{
-		const int32_t dy = int32_t(Sqrt(float(radius * radius - dx * dx)));
-
-		for(int32_t yy = std::min(prev_dy, dy); yy <= std::max(prev_dy, dy); ++yy)
+		const int32_t target_dy2 = radius * radius - dx * dx;
+		while(true)
 		{
-			pixels[uint32_t(center_x + dx) + uint32_t(center_y + yy) * w] = color;
-			pixels[uint32_t(center_x + dx) + uint32_t(center_y - yy) * w] = color;
+			pixels[uint32_t(center_x + dx) + uint32_t(center_y + dy) * w] = color;
+			pixels[uint32_t(center_x - dx) + uint32_t(center_y + dy) * w] = color;
+			pixels[uint32_t(center_x + dx) + uint32_t(center_y - dy) * w] = color;
+			pixels[uint32_t(center_x - dx) + uint32_t(center_y - dy) * w] = color;
+			if((dy - 1) * (dy - 1) <= target_dy2)
+				break;
+			--dy;
 		}
-
-		prev_dy = dy;
 	}
+	pixels[uint32_t(center_x + radius) + uint32_t(center_y) * w] = color;
+	pixels[uint32_t(center_x - radius) + uint32_t(center_y) * w] = color;
 }
 
 constexpr float c_beat_period = 96.0f;
