@@ -107,7 +107,7 @@ add_custom_command(
 		${U_TEST_FILE}
 		--include-dir ${CMAKE_CURRENT_BINARY_DIR}
 		-o ${U_TEST_FILE_OUT}
-		-Oz
+		-O1
 	)
 
 add_executable(u_test WIN32 stub.cpp ${U_TEST_FILE} ${U_TEST_FILE_OUT})
