@@ -74,7 +74,7 @@ constexpr uint32_t window_height= 768;
 struct DemoData
 {
 	float clouds_texture[cloud_texture_size * cloud_texture_size];
-	std::array<float, 3> colors_temp_buffer[window_width * window_height];
+	std::array<float, 3> colors_temp_buffers[2][window_width * window_height];
 };
 
 #ifdef DEBUG
@@ -144,6 +144,7 @@ int main()
 		const uint32_t sun_radius= 32;
 		const uint32_t sun_center[2]{ window.GetWidth() / 2u, window.GetHeight() / 2u - 2 * sun_radius };
 
+		// Draw sky.
 		const auto clouds_end_y= window.GetHeight() / 2u - 10;
 		for(uint32_t y= 0; y < clouds_end_y; ++y)
 		{
@@ -154,7 +155,7 @@ int main()
 
 			const auto src_line_texels= demo_data->clouds_texture + (tex_v & uint32_t(cloud_texture_size_mask)) * cloud_texture_size;
 
-			const auto dst_line = demo_data->colors_temp_buffer + y * window_width;
+			const auto dst_line = demo_data->colors_temp_buffers[0] + y * window_width;
 
 			for(uint32_t x = 0; x < window.GetWidth(); ++x)
 			{
@@ -193,17 +194,18 @@ int main()
 		for( float& x : blur_kernel )
 			x/= blur_kernel_sum;
 
+		// Copy sky to water with blur.
 		for(uint32_t y = window.GetHeight() / 2u + 10; y < window.GetHeight(); ++y)
 		{
 			const auto src_y = int32_t(window_height - 1 - y) - blur_kernel_radius;
-			const auto dst_line = demo_data->colors_temp_buffer + y * window_width;
+			const auto dst_line = demo_data->colors_temp_buffers[1] + y * window_width;
 			for(uint32_t x = 0; x < window.GetWidth(); ++x)
 			{
 				std::array<float, 3> avg_color{0.0f, 0.0f, 0.0f};
 				for(int32_t dy= 0; dy < blur_kernel_size; ++dy)
 				{
 					const int32_t src_blur_y= std::max(0, std::min(int32_t(src_y) + dy, int32_t(clouds_end_y) - 1));
-					const auto& src_color= demo_data->colors_temp_buffer[x + src_blur_y * int32_t(window_width)];
+					const auto& src_color= demo_data->colors_temp_buffers[0][x + src_blur_y * int32_t(window_width)];
 
 					const float weight= blur_kernel[dy];
 					for(uint32_t j= 0; j < 3; ++j)
@@ -214,9 +216,31 @@ int main()
 			}
 		}
 
+		// Perform second blur for water.
+		for(uint32_t y = window.GetHeight() / 2u + 10; y < window.GetHeight(); ++y)
+		{
+			const auto src_line= demo_data->colors_temp_buffers[1] + y * window_width;
+			const auto dst_line = demo_data->colors_temp_buffers[0] + y * window_width;
+			for (uint32_t x = 0; x < window.GetWidth(); ++x)
+			{
+				std::array<float, 3> avg_color{ 0.0f, 0.0f, 0.0f };
+				for (int32_t dx = 0; dx < blur_kernel_size; ++dx)
+				{
+					const int32_t src_blur_x = std::max(0, std::min(int32_t(x + dx) - blur_kernel_radius, int32_t(window_width) - 1));
+					const auto& src_color = src_line[src_blur_x];
+
+					const float weight = blur_kernel[dx];
+					for (uint32_t j = 0; j < 3; ++j)
+						avg_color[j] += weight * src_color[j];
+				}
+				for (uint32_t j = 0; j < 3; ++j)
+					dst_line[x][j] = avg_color[j];
+			}
+		}
+
 		for(uint32_t y = 0; y < window.GetHeight(); ++y)
 		{
-			const auto src_line= demo_data->colors_temp_buffer + y * window_width;
+			const auto src_line= demo_data->colors_temp_buffers[0] + y * window_width;
 			const auto dst_line= window.GetPixels() + y * window.GetWidth();
 			for(uint32_t x = 0; x < window.GetWidth(); ++x)
 			{
