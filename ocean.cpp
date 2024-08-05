@@ -210,6 +210,9 @@ int main()
 		// Copy sky to water with blur.
 		for(uint32_t y = window_height / 2u + horizon_offset; y < window_height; ++y)
 		{
+			// Make reflection at the screen bottom a little bit darker.
+			const float horizon_factor = float(y) * ( -1.0f / float(window_height) ) + 1.5f;
+
 			const auto src_y = int32_t(window_height - 1 - y) - blur_kernel_radius_vertical;
 			const auto dst_line = demo_data->colors_temp_buffers[1] + y * window_width;
 			for(uint32_t x = 0; x < window_width; ++x)
@@ -225,7 +228,7 @@ int main()
 						avg_color[j]+= weight * src_color[j];
 				}
 				for(uint32_t j = 0; j < 3; ++j)
-					dst_line[x][j]= avg_color[j];
+					dst_line[x][j]= avg_color[j] * horizon_factor;
 			}
 		}
 
