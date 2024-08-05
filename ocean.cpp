@@ -97,8 +97,9 @@ int main()
 
 	DrawableWindow window("4k_ocean", 768, 768);
 
-	static constexpr float sky_fog[3]{ 240.0f, 200.0f, 200.0f };
+	static constexpr float sky_color[3]{ 240.0f, 200.0f, 200.0f };
 	static constexpr float clouds_color[3]{ 240.0f, 240.0f, 240.0f };
+	static constexpr float sun_color[3]{ 200.0f, 240.0f, 255.0f };
 
 	LARGE_INTEGER start_ticks;
 	QueryPerformanceCounter(&start_ticks);
@@ -119,7 +120,10 @@ int main()
 		const float height= 256.0f;
 		const float distance= time * move_speed;
 
-		for(uint32_t y= 0; y < window.GetHeight() / 2u - 20; ++y)
+		const uint32_t sun_radius= 32;
+		const uint32_t sun_center[2]{ window.GetWidth() / 2u, window.GetHeight() / 2u - 2 * sun_radius };
+
+		for(uint32_t y= 0; y < window.GetHeight() / 2u - 10; ++y)
 		{
 			const float line_distance= float(height) * float(window.GetHeight() / 2.0f) / (float(window.GetHeight() / 2u) - float(y));
 			const float line_scale= line_distance / float(window.GetWidth() / 2u);
@@ -132,15 +136,24 @@ int main()
 			{
 				const int32_t tex_v= int32_t(line_scale * (float(x) - float(window.GetHeight() / 2u))) & cloud_texture_size_mask;
 
+				const int32_t sun_delta[2]{ int32_t(x) - int32_t(sun_center[0]), int32_t(y) - int32_t(sun_center[1]) };
+				
+				const float* own_color;
+				if(sun_delta[0] * sun_delta[0] + sun_delta[1] * sun_delta[1] <= sun_radius * sun_radius)
+					own_color= sun_color;
+				else
+					own_color= sky_color;
+
 				const float alpha= src_line_texels[tex_v];
 				const float one_minus_alpha = 1.0f - alpha;
 
 				DrawableWindow::PixelType color = 0x000000;
 				for (uint32_t j = 0; j < 3; ++j)
 				{
-					float color_mixed = sky_fog[j] * one_minus_alpha + clouds_color[j] * alpha;
+					float color_mixed = own_color[j] * one_minus_alpha + clouds_color[j] * alpha;
 					color |= uint32_t(int32_t(color_mixed) << (j << 3));
 				}
+
 
 				window.GetPixels()[x + y * window.GetWidth()] = color;
 			}
