@@ -130,9 +130,9 @@ int main()
 
 	DrawableWindow window("4k_ocean", window_width, window_height);
 
-	static constexpr float sky_color[3]{ 8.4f, 3.0f, 3.0f };
-	static constexpr float clouds_color[3]{ 7.4f, 7.4f, 7.4f };
-	static constexpr float sun_color[3]{ 5.0f, 10.0f, 40.0f };
+	static constexpr float sky_color[3]{ 8.4f, 2.5f, 2.5f };
+	static constexpr float clouds_color[3]{ 8.4f, 8.4f, 8.4f };
+	static constexpr float sun_color[3]{ 10.0f, 20.0f, 90.0f };
 	static constexpr float horizon_color[3]{ 1.0f, 4.0f, 20.0f };
 
 	LARGE_INTEGER start_ticks;
@@ -154,18 +154,18 @@ int main()
 		constexpr float camera_height= 256.0f;
 		const float camera_distance= time * move_speed;
 
-		const uint32_t sun_radius= 32;
-		const uint32_t sun_center[2]{ window_width / 2u, window_height / 2u - 2 * sun_radius };
+		const uint32_t sun_radius= 24;
+		const uint32_t sun_center[2]{ window_width / 2u, window_height / 2u - sun_radius * 3u / 2u };
 
 		// Draw sky.
-		const uint32_t horizon_offset= 5u;
+		const uint32_t horizon_offset= 10u;
 		const auto clouds_end_y= window_height / 2u - horizon_offset;
 		for(uint32_t y= 0; y < clouds_end_y; ++y)
 		{
 			const float line_distance= float(camera_height) * float(window_height / 2.0f) / (float(window_height / 2u) - float(y));
 			const float line_scale= line_distance / float(window_width / 2u);
 
-			float horizon_factor= 1.0f - (float(window_height / 2u) - float(y)) / float(window_height / 2u);
+			float horizon_factor= 1.0f - (float(window_height / 2u - horizon_offset) - float(y)) / float(window_height / 2u - horizon_offset);
 			horizon_factor= horizon_factor * horizon_factor;
 
 			const float one_minus_horizon_factor= 1.0f - horizon_factor;
