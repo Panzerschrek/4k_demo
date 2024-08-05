@@ -53,7 +53,7 @@ static inline uint32_t InterpolatedNoise(const uint32_t x, const uint32_t y, con
 static inline float GaussianFunction(const float x)
 {
 	const float minus_half_x2= -0.5f * x * x;
-	float factor= 1.0f;
+	float factor= 2.506628274631000502415765284811f; // sqrt(Tau)
 	float res= 0.0f;
 	for( int32_t i= 0; i < 19; ++i)
 	{
@@ -66,14 +66,9 @@ static inline float GaussianFunction(const float x)
 
 static void CalculateBlurKernel(const int32_t radius, float* const out_kernel)
 {
-	float blur_kernel_sum = 0.0f;
+	const float scale_factor= 1.0f / (float(radius * 2 + 1));
 	for(int32_t dx = -radius; dx <= radius; ++dx)
-	{
-		out_kernel[dx + radius] = GaussianFunction(float(dx) / float(radius / 3.0f));
-		blur_kernel_sum += out_kernel[dx + radius];
-	}
-	for(int32_t dx = -radius; dx <= radius; ++dx)
-		out_kernel[dx + radius]/= blur_kernel_sum;
+		out_kernel[dx + radius] = scale_factor * GaussianFunction(float(dx) / float(radius / 3.0f));
 }
 
 constexpr uint32_t cloud_texture_size_log2 = 10;
