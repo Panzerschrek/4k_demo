@@ -84,3 +84,22 @@ target_link_libraries(sound_out PRIVATE winmm.lib)
 
 add_executable(orbital_resonance WIN32 orbital_resonance.cpp)
 target_link_libraries(orbital_resonance PRIVATE winmm.lib)
+
+set( U_TEST_FILE ${CMAKE_CURRENT_SOURCE_DIR}/u_test.u )
+set( U_TEST_FILE_OUT ${CMAKE_CURRENT_BINARY_DIR}/u_test.exe )
+add_custom_command(
+	OUTPUT ${U_TEST_FILE_OUT}
+	DEPENDS ${U_TEST_FILE}
+	COMMAND
+		${U_COMPILER}
+		${U_TEST_FILE}
+		-o ${U_TEST_FILE_OUT}
+		-O2
+		-filetype=exe
+	)
+
+add_custom_target(
+	u_test ALL
+	DEPENDS ${U_TEST_FILE}
+	SOURCES ${U_TEST_FILE_OUT}
+	)

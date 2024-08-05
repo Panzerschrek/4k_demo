@@ -10,7 +10,13 @@
             "buildCommandArgs": "",
             "ctestCommandArgs": "",
             "inheritEnvironments": [ "msvc_x64_x64" ],
-            "variables": []
+            "variables": [
+                {
+                    "name": "U_COMPILER",
+                    "value": "C:/Users/user/Documents/Projects/other/U-00DC-Sprache/build-release-msvc-ninja/compiler0/Compiler.exe",
+                    "type": "STRING"
+                }
+            ]
         },
         {
             "name": "x86-Release",
@@ -34,7 +40,13 @@
             "buildCommandArgs": "",
             "ctestCommandArgs": "",
             "inheritEnvironments": [ "msvc_x64_x64" ],
-            "variables": []
+            "variables": [
+                {
+                    "name": "U_COMPILER",
+                    "value": "C:/Users/user/Documents/Projects/other/U-00DC-Sprache/build-release-msvc-ninja/compiler0/Compiler.exe",
+                    "type": "STRING"
+                }
+            ]
         }
     ]
 }
