@@ -165,6 +165,11 @@ int main()
 			const float line_distance= float(height) * float(window.GetHeight() / 2.0f) / (float(window.GetHeight() / 2u) - float(y));
 			const float line_scale= line_distance / float(window.GetWidth() / 2u);
 
+			float horizon_factor= 1.0f - (float(window.GetHeight() / 2u) - float(y)) / float(window.GetHeight() / 2u);
+			horizon_factor= horizon_factor * horizon_factor;
+
+			const float one_minus_horizon_factor= 1.0f - horizon_factor;
+
 			const uint32_t tex_v= uint32_t(line_distance + distance);
 
 			const auto src_line_texels= demo_data->clouds_texture + (tex_v & uint32_t(cloud_texture_size_mask)) * cloud_texture_size;
@@ -190,7 +195,8 @@ int main()
 				for (uint32_t j = 0; j < 3; ++j)
 				{
 					const float color_mixed = own_color[j] * one_minus_alpha + clouds_color[j] * alpha;
-					dst_line[x][j]= color_mixed;
+					const float color_horizon_mixed= one_minus_horizon_factor * color_mixed + horizon_color[j] * horizon_factor;
+					dst_line[x][j]= color_horizon_mixed;
 					color |= uint32_t(int32_t(color_mixed) << (j << 3));
 				}
 			}
