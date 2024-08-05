@@ -1,3 +1,4 @@
+#include <array>
 #include <utility>
 #include "math.hpp"
 #include "window.hpp"
@@ -51,9 +52,13 @@ constexpr uint32_t cloud_texture_size_log2 = 10;
 constexpr uint32_t cloud_texture_size = 1 << cloud_texture_size_log2;
 constexpr uint32_t cloud_texture_size_mask = cloud_texture_size - 1;
 
-struct CloudsData
+constexpr uint32_t window_width= 768;
+constexpr uint32_t window_height= 768;
+
+struct DemoData
 {
-	float alpha[cloud_texture_size * cloud_texture_size];
+	float clouds_texture[cloud_texture_size * cloud_texture_size];
+	std::array<float, 3> colors_temp_buffer[window_width * window_height];
 };
 
 #ifdef DEBUG
@@ -65,7 +70,7 @@ int main()
 	// For now allocate memory from heap.
 	// Using static array increases executable size.
 	// Using stack array requires stack checking function.
-	const auto clouds_data = reinterpret_cast<CloudsData*>(VirtualAlloc(nullptr, sizeof(CloudsData), MEM_COMMIT, PAGE_READWRITE));
+	const auto demo_data = reinterpret_cast<DemoData*>(VirtualAlloc(nullptr, sizeof(DemoData), MEM_COMMIT, PAGE_READWRITE));
 
 	for(uint32_t y = 0; y < cloud_texture_size; ++y)
 	for(uint32_t x = 0; x < cloud_texture_size; ++x)
@@ -92,10 +97,10 @@ int main()
 		else
 			alpha_corrected= (alpha - border_low) / (border_height - border_low);
 		
-		clouds_data->alpha[address]= alpha_corrected;
+		demo_data->clouds_texture[address]= alpha_corrected;
 	}
 
-	DrawableWindow window("4k_ocean", 768, 768);
+	DrawableWindow window("4k_ocean", window_width, window_height);
 
 	static constexpr float sky_color[3]{ 240.0f, 200.0f, 200.0f };
 	static constexpr float clouds_color[3]{ 240.0f, 240.0f, 240.0f };
@@ -130,7 +135,9 @@ int main()
 
 			const uint32_t tex_v= uint32_t(line_distance + distance);
 
-			const auto src_line_texels= clouds_data->alpha + (tex_v & uint32_t(cloud_texture_size_mask)) * cloud_texture_size;
+			const auto src_line_texels= demo_data->clouds_texture + (tex_v & uint32_t(cloud_texture_size_mask)) * cloud_texture_size;
+
+			const auto dst_line = demo_data->colors_temp_buffer + y * window_width;
 
 			for(uint32_t x = 0; x < window.GetWidth(); ++x)
 			{
@@ -150,12 +157,36 @@ int main()
 				DrawableWindow::PixelType color = 0x000000;
 				for (uint32_t j = 0; j < 3; ++j)
 				{
-					float color_mixed = own_color[j] * one_minus_alpha + clouds_color[j] * alpha;
+					const float color_mixed = own_color[j] * one_minus_alpha + clouds_color[j] * alpha;
+					dst_line[x][j]= color_mixed;
 					color |= uint32_t(int32_t(color_mixed) << (j << 3));
 				}
+			}
+		}
 
+		for(uint32_t y = window.GetHeight() / 2u + 10; y < window.GetHeight(); ++y)
+		{
+			const auto src_line = demo_data->colors_temp_buffer + (window_height - 1 - y) * window_width;
+			const auto dst_line = demo_data->colors_temp_buffer + y * window_width;
+			for(uint32_t x = 0; x < window.GetWidth(); ++x)
+			{
+				dst_line[x]= src_line[x];
+			}
+		}
 
-				window.GetPixels()[x + y * window.GetWidth()] = color;
+		for(uint32_t y = 0; y < window.GetHeight(); ++y)
+		{
+			const auto src_line= demo_data->colors_temp_buffer + y * window_width;
+			const auto dst_line= window.GetPixels() + y * window.GetWidth();
+			for(uint32_t x = 0; x < window.GetWidth(); ++x)
+			{
+				DrawableWindow::PixelType color = 0x000000;
+				for (uint32_t j = 0; j < 3; ++j)
+				{
+					color |= uint32_t(int32_t(src_line[x][j]) << (j << 3));
+				}
+
+				dst_line[x]= color;
 			}
 		}
 
