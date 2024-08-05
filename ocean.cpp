@@ -51,10 +51,9 @@ constexpr uint32_t cloud_texture_size_log2 = 10;
 constexpr uint32_t cloud_texture_size = 1 << cloud_texture_size_log2;
 constexpr uint32_t cloud_texture_size_mask = cloud_texture_size - 1;
 
-
 struct CloudsData
 {
-	uint8_t alpha[cloud_texture_size * cloud_texture_size];
+	float alpha[cloud_texture_size * cloud_texture_size];
 };
 
 #ifdef DEBUG
@@ -72,17 +71,34 @@ int main()
 	for(uint32_t x = 0; x < cloud_texture_size; ++x)
 	{
 		constexpr uint32_t min_octave = 2;
-		constexpr uint32_t max_octave = 7;
+		constexpr uint32_t max_octave = 6;
 
 		uint32_t r = 0;
 		for(uint32_t i = min_octave; i <= max_octave; ++i)
 			r += InterpolatedNoise(x, y, cloud_texture_size_log2, i) >> (max_octave - i);
 
 		const uint32_t address = x + (y << cloud_texture_size_log2);
-		clouds_data->alpha[address]= uint8_t(r >> 9);
+
+		const float alpha= float(r) / (512u * 256u);
+
+		const float border_low= 0.55f;
+		const float border_height= 0.7f;
+
+		float alpha_corrected;
+		if( alpha <= border_low)
+			alpha_corrected = 0.0f;
+		else if( alpha >= border_height)
+			alpha_corrected= 1.0f;
+		else
+			alpha_corrected= (alpha - border_low) / (border_height - border_low);
+		
+		clouds_data->alpha[address]= alpha_corrected;
 	}
 
 	DrawableWindow window("4k_ocean", 768, 768);
+
+	static constexpr float sky_fog[3]{ 240.0f, 200.0f, 200.0f };
+	static constexpr float clouds_color[3]{ 240.0f, 240.0f, 240.0f };
 
 	while(true)
 	{
@@ -103,7 +119,17 @@ int main()
 			{
 				const int32_t tex_v= int32_t(line_scale * (float(x) - float(window.GetHeight() / 2u))) & cloud_texture_size_mask;
 
-				window.GetPixels()[x + y * window.GetWidth()] = src_line_texels[ tex_v ];
+				const float alpha= src_line_texels[tex_v];
+				const float one_minus_alpha = 1.0f - alpha;
+
+				DrawableWindow::PixelType color = 0x000000;
+				for (uint32_t j = 0; j < 3; ++j)
+				{
+					float color_mixed = sky_fog[j] * one_minus_alpha + clouds_color[j] * alpha;
+					color |= uint32_t(int32_t(color_mixed) << (j << 3));
+				}
+
+				window.GetPixels()[x + y * window.GetWidth()] = color;
 			}
 		}
 
