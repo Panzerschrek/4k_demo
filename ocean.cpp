@@ -128,7 +128,8 @@ int main()
 		const uint32_t sun_radius= 32;
 		const uint32_t sun_center[2]{ window.GetWidth() / 2u, window.GetHeight() / 2u - 2 * sun_radius };
 
-		for(uint32_t y= 0; y < window.GetHeight() / 2u - 10; ++y)
+		const auto clouds_end_y= window.GetHeight() / 2u - 10;
+		for(uint32_t y= 0; y < clouds_end_y; ++y)
 		{
 			const float line_distance= float(height) * float(window.GetHeight() / 2.0f) / (float(window.GetHeight() / 2u) - float(y));
 			const float line_scale= line_distance / float(window.GetWidth() / 2u);
@@ -166,11 +167,21 @@ int main()
 
 		for(uint32_t y = window.GetHeight() / 2u + 10; y < window.GetHeight(); ++y)
 		{
-			const auto src_line = demo_data->colors_temp_buffer + (window_height - 1 - y) * window_width;
+			const auto src_y = window_height - 1 - y;
 			const auto dst_line = demo_data->colors_temp_buffer + y * window_width;
 			for(uint32_t x = 0; x < window.GetWidth(); ++x)
 			{
-				dst_line[x]= src_line[x];
+				std::array<float, 3> avg_color{0.0f, 0.0f, 0.0f};
+				for(int32_t dy= -10; dy <= 10; ++dy)
+				{
+					const int32_t src_blur_y= std::max(0, std::min(int32_t(src_y) + dy, int32_t(clouds_end_y) - 1));
+					const auto& src_color= demo_data->colors_temp_buffer[x + src_blur_y * int32_t(window_width)];
+
+					for(uint32_t j= 0; j < 3; ++j)
+						avg_color[j]+= src_color[j];
+				}
+				for(uint32_t j = 0; j < 3; ++j)
+					dst_line[x][j]= avg_color[j] / 21.0f;
 			}
 		}
 
