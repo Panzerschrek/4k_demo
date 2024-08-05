@@ -48,6 +48,22 @@ static inline uint32_t InterpolatedNoise(const uint32_t x, const uint32_t y, con
 	return uint32_t((interp_x[1] * dx + interp_x[0] * (step - dx)) >> (k + k));
 }
 
+// Gaussian approaximation for range [-3.5;3.5].
+// Result requires normalization.
+static inline float GaussianFunction(const float x)
+{
+	const float minus_half_x2= -0.5f * x * x;
+	float factor= 1.0f;
+	float res= 0.0f;
+	for( int32_t i= 0; i < 19; ++i)
+	{
+		res+= factor;
+		factor*= minus_half_x2 / float(i + 1);
+	}
+
+	return res;
+}
+
 constexpr uint32_t cloud_texture_size_log2 = 10;
 constexpr uint32_t cloud_texture_size = 1 << cloud_texture_size_log2;
 constexpr uint32_t cloud_texture_size_mask = cloud_texture_size - 1;
@@ -165,23 +181,36 @@ int main()
 			}
 		}
 
+		constexpr int32_t blur_kernel_radius= 20;
+		constexpr int32_t blur_kernel_size= blur_kernel_radius * 2 + 1;
+		float blur_kernel[blur_kernel_size];
+		float blur_kernel_sum= 0.0f;
+		for(int32_t dx= -blur_kernel_radius; dx <= blur_kernel_radius; ++dx)
+		{
+			blur_kernel[dx + blur_kernel_radius]= GaussianFunction(float(dx) / float(blur_kernel_radius / 3.0f));
+			blur_kernel_sum+= blur_kernel[dx + blur_kernel_radius];
+		}
+		for( float& x : blur_kernel )
+			x/= blur_kernel_sum;
+
 		for(uint32_t y = window.GetHeight() / 2u + 10; y < window.GetHeight(); ++y)
 		{
-			const auto src_y = window_height - 1 - y;
+			const auto src_y = int32_t(window_height - 1 - y) - blur_kernel_radius;
 			const auto dst_line = demo_data->colors_temp_buffer + y * window_width;
 			for(uint32_t x = 0; x < window.GetWidth(); ++x)
 			{
 				std::array<float, 3> avg_color{0.0f, 0.0f, 0.0f};
-				for(int32_t dy= -10; dy <= 10; ++dy)
+				for(int32_t dy= 0; dy < blur_kernel_size; ++dy)
 				{
 					const int32_t src_blur_y= std::max(0, std::min(int32_t(src_y) + dy, int32_t(clouds_end_y) - 1));
 					const auto& src_color= demo_data->colors_temp_buffer[x + src_blur_y * int32_t(window_width)];
 
+					const float weight= blur_kernel[dy];
 					for(uint32_t j= 0; j < 3; ++j)
-						avg_color[j]+= src_color[j];
+						avg_color[j]+= weight * src_color[j];
 				}
 				for(uint32_t j = 0; j < 3; ++j)
-					dst_line[x][j]= avg_color[j] / 21.0f;
+					dst_line[x][j]= avg_color[j];
 			}
 		}
 
@@ -202,8 +231,5 @@ int main()
 		}
 
 		window.Blit();
-
-		Sleep(16);
-
 	}
 }
