@@ -98,7 +98,7 @@ add_custom_command(
 		)
 
 set( U_TEST_FILE ${CMAKE_CURRENT_SOURCE_DIR}/u_test.u )
-set( U_TEST_FILE_OUT ${CMAKE_CURRENT_BINARY_DIR}/u_test.exe )
+set( U_TEST_FILE_OUT ${CMAKE_CURRENT_BINARY_DIR}/u_test.obj )
 add_custom_command(
 	OUTPUT ${U_TEST_FILE_OUT}
 	DEPENDS ${U_TEST_FILE} ${CMAKE_CURRENT_BINARY_DIR}/windows_headers.u
@@ -108,22 +108,6 @@ add_custom_command(
 		--include-dir ${CMAKE_CURRENT_BINARY_DIR}
 		-o ${U_TEST_FILE_OUT}
 		-Oz
-		-filetype=exe
-		-Wl,-defaultlib:USER32,-defaultlib:GDI32,-defaultlib:KERNEL32
-		-Wl,-incremental:no 
-		-Wl,-entry:main
-		-Wl,-dynamicbase:no
-		-Wl,-fixed
-		-Wl,-align:32,-filealign:32,
-		-Wl,-stub::${CMAKE_CURRENT_SOURCE_DIR}/DOSSTUB/DOSHEAD.BIN
-		-Wl,-subsystem:windows
-		-Wl,-opt:ref,-opt:icf
-		-Wl,-manifest:no
-		-Wl,-merge:.rdata=.text,-merge:.pdata=.text,-merge:.xdata=.text
 	)
 
-add_custom_target(
-	u_test ALL
-	DEPENDS ${U_TEST_FILE}
-	SOURCES ${U_TEST_FILE_OUT}
-	)
+add_executable(u_test WIN32 stub.cpp ${U_TEST_FILE} ${U_TEST_FILE_OUT})
