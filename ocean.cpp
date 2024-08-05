@@ -1,4 +1,5 @@
 #include <utility>
+#include "math.hpp"
 #include "window.hpp"
 
 static int32_t Noise2(const int32_t x, const int32_t y, const int32_t seed)
@@ -81,16 +82,30 @@ int main()
 		clouds_data->alpha[address]= uint8_t(r >> 9);
 	}
 
-	DrawableWindow window("4k_ocean", 640, 480);
+	DrawableWindow window("4k_ocean", 768, 768);
 
 	while(true)
 	{
 		window.ProcessMessages();
 
-		for(uint32_t y= 0; y < window.GetHeight(); ++y)
+		const float height= 256.0f;
+
+		for(uint32_t y= 0; y < window.GetHeight() / 2u - 20; ++y)
+		{
+			const float tex_y= float(height) * float(window.GetHeight() / 2.0f) / (float(window.GetHeight() / 2u) - float(y));
+			const float line_scale= tex_y / float(window.GetWidth() / 2u);
+
+			const uint32_t tex_v= uint32_t(tex_y);
+
+			const auto src_line_texels= clouds_data->alpha + (tex_v & uint32_t(cloud_texture_size_mask)) * cloud_texture_size;
+
 			for(uint32_t x = 0; x < window.GetWidth(); ++x)
-				window.GetPixels()[x + y * window.GetWidth()] =
-				clouds_data->alpha[ x + y * cloud_texture_size];
+			{
+				const int32_t tex_v= int32_t(line_scale * (float(x) - float(window.GetHeight() / 2u))) & cloud_texture_size_mask;
+
+				window.GetPixels()[x + y * window.GetWidth()] = src_line_texels[ tex_v ];
+			}
+		}
 
 		window.Blit();
 
