@@ -151,34 +151,34 @@ int main()
 
 		const float move_speed = 40.0f;
 
-		const float height= 256.0f;
-		const float distance= time * move_speed;
+		constexpr float camera_height= 256.0f;
+		const float camera_distance= time * move_speed;
 
 		const uint32_t sun_radius= 32;
-		const uint32_t sun_center[2]{ window.GetWidth() / 2u, window.GetHeight() / 2u - 2 * sun_radius };
+		const uint32_t sun_center[2]{ window_width / 2u, window_height / 2u - 2 * sun_radius };
 
 		// Draw sky.
 		const uint32_t horizon_offset= 5u;
-		const auto clouds_end_y= window.GetHeight() / 2u - horizon_offset;
+		const auto clouds_end_y= window_height / 2u - horizon_offset;
 		for(uint32_t y= 0; y < clouds_end_y; ++y)
 		{
-			const float line_distance= float(height) * float(window.GetHeight() / 2.0f) / (float(window.GetHeight() / 2u) - float(y));
-			const float line_scale= line_distance / float(window.GetWidth() / 2u);
+			const float line_distance= float(camera_height) * float(window_height / 2.0f) / (float(window_height / 2u) - float(y));
+			const float line_scale= line_distance / float(window_width / 2u);
 
-			float horizon_factor= 1.0f - (float(window.GetHeight() / 2u) - float(y)) / float(window.GetHeight() / 2u);
+			float horizon_factor= 1.0f - (float(window_height / 2u) - float(y)) / float(window_height / 2u);
 			horizon_factor= horizon_factor * horizon_factor;
 
 			const float one_minus_horizon_factor= 1.0f - horizon_factor;
 
-			const uint32_t tex_v= uint32_t(line_distance + distance);
+			const uint32_t tex_v= uint32_t(line_distance + camera_distance);
 
 			const auto src_line_texels= demo_data->clouds_texture + (tex_v & uint32_t(cloud_texture_size_mask)) * cloud_texture_size;
 
 			const auto dst_line = demo_data->colors_temp_buffers[0] + y * window_width;
 
-			for(uint32_t x = 0; x < window.GetWidth(); ++x)
+			for(uint32_t x = 0; x < window_width; ++x)
 			{
-				const int32_t tex_v= int32_t(line_scale * (float(x) - float(window.GetHeight() / 2u))) & cloud_texture_size_mask;
+				const int32_t tex_v= int32_t(line_scale * (float(x) - float(window_height / 2u))) & cloud_texture_size_mask;
 
 				const int32_t sun_delta[2]{ int32_t(x) - int32_t(sun_center[0]), int32_t(y) - int32_t(sun_center[1]) };
 				
@@ -208,11 +208,11 @@ int main()
 		CalculateBlurKernel(blur_kernel_radius_vertical, blur_kernel_vertical);
 
 		// Copy sky to water with blur.
-		for(uint32_t y = window.GetHeight() / 2u + horizon_offset; y < window.GetHeight(); ++y)
+		for(uint32_t y = window_height / 2u + horizon_offset; y < window_height; ++y)
 		{
 			const auto src_y = int32_t(window_height - 1 - y) - blur_kernel_radius_vertical;
 			const auto dst_line = demo_data->colors_temp_buffers[1] + y * window_width;
-			for(uint32_t x = 0; x < window.GetWidth(); ++x)
+			for(uint32_t x = 0; x < window_width; ++x)
 			{
 				std::array<float, 3> avg_color{0.0f, 0.0f, 0.0f};
 				for(int32_t dy= 0; dy < blur_kernel_size_vertical; ++dy)
@@ -235,11 +235,11 @@ int main()
 		CalculateBlurKernel(blur_kernel_radius_horizontal, blur_kernel_horizontal);
 
 		// Perform second blur for water.
-		for(uint32_t y = window.GetHeight() / 2u + horizon_offset; y < window.GetHeight(); ++y)
+		for(uint32_t y = window_height / 2u + horizon_offset; y < window_height; ++y)
 		{
 			const auto src_line= demo_data->colors_temp_buffers[1] + y * window_width;
 			const auto dst_line = demo_data->colors_temp_buffers[0] + y * window_width;
-			for (uint32_t x = 0; x < window.GetWidth(); ++x)
+			for (uint32_t x = 0; x < window_width; ++x)
 			{
 				std::array<float, 3> avg_color{ 0.0f, 0.0f, 0.0f };
 				for (int32_t dx = 0; dx < blur_kernel_size_horizontal; ++dx)
@@ -257,18 +257,18 @@ int main()
 		}
 
 		// Fill horizon span.
-		for(uint32_t y= window.GetHeight() / 2u - horizon_offset; y < window.GetHeight() / 2u + horizon_offset; ++y)
+		for(uint32_t y= window_height / 2u - horizon_offset; y < window_height / 2u + horizon_offset; ++y)
 		{
 			const auto dst_line= demo_data->colors_temp_buffers[0] + y * window_width;
-			for(uint32_t x = 0; x < window.GetWidth(); ++x)
+			for(uint32_t x = 0; x < window_width; ++x)
 				dst_line[x]= {horizon_color[0], horizon_color[1], horizon_color[2]};
 		}
 
-		for(uint32_t y = 0; y < window.GetHeight(); ++y)
+		for(uint32_t y = 0; y < window_height; ++y)
 		{
 			const auto src_line= demo_data->colors_temp_buffers[0] + y * window_width;
-			const auto dst_line= window.GetPixels() + y * window.GetWidth();
-			for(uint32_t x = 0; x < window.GetWidth(); ++x)
+			const auto dst_line= window.GetPixels() + y * window_width;
+			for(uint32_t x = 0; x < window_width; ++x)
 			{
 				DrawableWindow::PixelType color = 0x000000;
 				for (uint32_t j = 0; j < 3; ++j)
