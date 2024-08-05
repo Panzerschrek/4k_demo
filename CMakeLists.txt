@@ -107,9 +107,19 @@ add_custom_command(
 		${U_TEST_FILE}
 		--include-dir ${CMAKE_CURRENT_BINARY_DIR}
 		-o ${U_TEST_FILE_OUT}
-		-O2
+		-Oz
 		-filetype=exe
-		-Wl,-defaultlib:USER32,-defaultlib:GDI32,-defaultlib:KERNEL32,-entry:main,-dynamicbase:no,-align:32,-filealign:32
+		-Wl,-defaultlib:USER32,-defaultlib:GDI32,-defaultlib:KERNEL32
+		-Wl,-incremental:no 
+		-Wl,-entry:main
+		-Wl,-dynamicbase:no
+		-Wl,-fixed
+		-Wl,-align:32,-filealign:32,
+		-Wl,-stub::${CMAKE_CURRENT_SOURCE_DIR}/DOSSTUB/DOSHEAD.BIN
+		-Wl,-subsystem:windows
+		-Wl,-opt:ref,-opt:icf
+		-Wl,-manifest:no
+		-Wl,-merge:.rdata=.text,-merge:.pdata=.text,-merge:.xdata=.text
 	)
 
 add_custom_target(
