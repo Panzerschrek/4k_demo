@@ -83,10 +83,12 @@ constexpr uint32_t cloud_texture_size_mask = cloud_texture_size - 1;
 constexpr uint32_t window_width= 800;
 constexpr uint32_t window_height= 600;
 
+using ColorHDR= std::array<float, 3>;
+
 struct DemoData
 {
 	float clouds_texture[cloud_texture_size * cloud_texture_size];
-	std::array<float, 3> colors_temp_buffers[2][window_width * window_height];
+	ColorHDR colors_temp_buffers[2][window_width * window_height];
 };
 
 #ifdef DEBUG
@@ -130,10 +132,10 @@ int main()
 
 	DrawableWindow window("4k_ocean", window_width, window_height);
 
-	static constexpr float sky_color[3]{ 8.4f, 2.5f, 2.5f };
-	static constexpr float clouds_color[3]{ 8.4f, 8.4f, 8.4f };
-	static constexpr float sun_color[3]{ 10.0f, 20.0f, 90.0f };
-	static constexpr float horizon_color[3]{ 1.0f, 4.0f, 20.0f };
+	static constexpr ColorHDR sky_color{ 8.4f, 2.5f, 2.5f };
+	static constexpr ColorHDR clouds_color{ 8.4f, 8.4f, 8.4f };
+	static constexpr ColorHDR sun_color{ 10.0f, 20.0f, 90.0f };
+	static constexpr ColorHDR horizon_color{ 1.0f, 4.0f, 20.0f };
 
 	LARGE_INTEGER start_ticks;
 	QueryPerformanceCounter(&start_ticks);
@@ -154,12 +156,12 @@ int main()
 		constexpr float camera_height= 256.0f;
 		const float camera_distance= time * move_speed;
 
-		const uint32_t sun_radius= 24;
-		const uint32_t sun_center[2]{ window_width / 2u, window_height / 2u - sun_radius * 3u / 2u };
+		constexpr uint32_t sun_radius= 24;
+		constexpr uint32_t sun_center[2]{ window_width / 2u, window_height / 2u - sun_radius * 3u / 2u };
 
 		// Draw sky.
-		const uint32_t horizon_offset= 10u;
-		const auto clouds_end_y= window_height / 2u - horizon_offset;
+		constexpr uint32_t horizon_offset= 10u;
+		constexpr auto clouds_end_y= window_height / 2u - horizon_offset;
 		for(uint32_t y= 0; y < clouds_end_y; ++y)
 		{
 			const float y_f= float(int32_t(y));
@@ -184,18 +186,18 @@ int main()
 
 				const int32_t sun_delta[2]{ int32_t(x) - int32_t(sun_center[0]), int32_t(y) - int32_t(sun_center[1]) };
 				
-				const float* own_color;
+				const ColorHDR* own_color;
 				if(sun_delta[0] * sun_delta[0] + sun_delta[1] * sun_delta[1] <= sun_radius * sun_radius)
-					own_color= sun_color;
+					own_color= &sun_color;
 				else
-					own_color= sky_color;
+					own_color= &sky_color;
 
 				const float alpha= src_line_texels[tex_v];
 				const float one_minus_alpha = 1.0f - alpha;
 
 				for (uint32_t j = 0; j < 3; ++j)
 				{
-					const float color_mixed = own_color[j] * one_minus_alpha + clouds_color[j] * alpha;
+					const float color_mixed = (*own_color)[j] * one_minus_alpha + clouds_color[j] * alpha;
 					const float color_horizon_mixed= one_minus_horizon_factor * color_mixed + horizon_color[j] * horizon_factor;
 					dst_line[x][j]= color_horizon_mixed;
 				}
@@ -217,7 +219,7 @@ int main()
 			const auto dst_line = demo_data->colors_temp_buffers[1] + y * window_width;
 			for(uint32_t x = 0; x < window_width; ++x)
 			{
-				std::array<float, 3> avg_color{0.0f, 0.0f, 0.0f};
+				ColorHDR avg_color{0.0f, 0.0f, 0.0f};
 				for(int32_t dy= 0; dy < blur_kernel_size_vertical; ++dy)
 				{
 					const int32_t src_blur_y= std::max(0, std::min(int32_t(src_y) + dy, int32_t(clouds_end_y) - 1));
@@ -244,7 +246,7 @@ int main()
 			const auto dst_line = demo_data->colors_temp_buffers[0] + y * window_width;
 			for (uint32_t x = 0; x < window_width; ++x)
 			{
-				std::array<float, 3> avg_color{ 0.0f, 0.0f, 0.0f };
+				ColorHDR avg_color{ 0.0f, 0.0f, 0.0f };
 				for (int32_t dx = 0; dx < blur_kernel_size_horizontal; ++dx)
 				{
 					const int32_t src_blur_x = std::max(0, std::min(int32_t(x + dx) - blur_kernel_radius_horizontal, int32_t(window_width) - 1));
@@ -264,7 +266,7 @@ int main()
 		{
 			const auto dst_line= demo_data->colors_temp_buffers[0] + y * window_width;
 			for(uint32_t x = 0; x < window_width; ++x)
-				dst_line[x]= {horizon_color[0], horizon_color[1], horizon_color[2]};
+				dst_line[x]= horizon_color;
 		}
 
 		for(uint32_t y = 0; y < window_height; ++y)
