@@ -162,15 +162,17 @@ int main()
 		const auto clouds_end_y= window_height / 2u - horizon_offset;
 		for(uint32_t y= 0; y < clouds_end_y; ++y)
 		{
-			const float line_distance= float(camera_height) * float(window_height / 2.0f) / (float(window_height / 2u) - float(y));
+			const float y_f= float(int32_t(y));
+
+			const float line_distance= camera_height * float(window_height / 2.0f) / (float(window_height / 2u) - y_f);
 			const float line_scale= line_distance / float(window_width / 2u);
 
-			float horizon_factor= 1.0f - (float(window_height / 2u - horizon_offset) - float(y)) / float(window_height / 2u - horizon_offset);
+			float horizon_factor= 1.0f - (float(window_height / 2u - horizon_offset) - y_f) / float(window_height / 2u - horizon_offset);
 			horizon_factor= horizon_factor * horizon_factor;
 
 			const float one_minus_horizon_factor= 1.0f - horizon_factor;
 
-			const uint32_t tex_v= uint32_t(line_distance + camera_distance);
+			const uint32_t tex_v= int32_t(line_distance + camera_distance);
 
 			const auto src_line_texels= demo_data->clouds_texture + (tex_v & uint32_t(cloud_texture_size_mask)) * cloud_texture_size;
 
@@ -191,13 +193,11 @@ int main()
 				const float alpha= src_line_texels[tex_v];
 				const float one_minus_alpha = 1.0f - alpha;
 
-				DrawableWindow::PixelType color = 0x000000;
 				for (uint32_t j = 0; j < 3; ++j)
 				{
 					const float color_mixed = own_color[j] * one_minus_alpha + clouds_color[j] * alpha;
 					const float color_horizon_mixed= one_minus_horizon_factor * color_mixed + horizon_color[j] * horizon_factor;
 					dst_line[x][j]= color_horizon_mixed;
-					color |= uint32_t(int32_t(color_mixed) << (j << 3));
 				}
 			}
 		}
@@ -211,7 +211,7 @@ int main()
 		for(uint32_t y = window_height / 2u + horizon_offset; y < window_height; ++y)
 		{
 			// Make reflection at the screen bottom a little bit darker.
-			const float horizon_factor = float(y) * ( -1.0f / float(window_height) ) + 1.5f;
+			const float horizon_factor = float(int32_t(y)) * ( -1.0f / float(window_height) ) + 1.5f;
 
 			const auto src_y = int32_t(window_height - 1 - y) - blur_kernel_radius_vertical;
 			const auto dst_line = demo_data->colors_temp_buffers[1] + y * window_width;
@@ -276,8 +276,8 @@ int main()
 				DrawableWindow::PixelType color = 0x000000;
 				for (uint32_t j = 0; j < 3; ++j)
 				{
-					float c= src_line[x][j];
-					float color_tonemapped= 255.0f * c / (c + 1.0f);
+					const float c= src_line[x][j];
+					const float color_tonemapped= 255.0f * c / (c + 1.0f);
 					color |= uint32_t(int32_t(color_tonemapped) << (j << 3));
 				}
 
