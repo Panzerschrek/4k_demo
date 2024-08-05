@@ -118,9 +118,9 @@ int main()
 
 	DrawableWindow window("4k_ocean", window_width, window_height);
 
-	static constexpr float sky_color[3]{ 240.0f, 200.0f, 200.0f };
-	static constexpr float clouds_color[3]{ 240.0f, 240.0f, 240.0f };
-	static constexpr float sun_color[3]{ 200.0f, 240.0f, 255.0f };
+	static constexpr float sky_color[3]{ 8.4f, 3.0f, 3.0f };
+	static constexpr float clouds_color[3]{ 7.4f, 7.4f, 7.4f };
+	static constexpr float sun_color[3]{ 5.0f, 10.0f, 40.0f };
 
 	LARGE_INTEGER start_ticks;
 	QueryPerformanceCounter(&start_ticks);
@@ -223,7 +223,9 @@ int main()
 				DrawableWindow::PixelType color = 0x000000;
 				for (uint32_t j = 0; j < 3; ++j)
 				{
-					color |= uint32_t(int32_t(src_line[x][j]) << (j << 3));
+					float c= src_line[x][j];
+					float color_tonemapped= 255.0f * c / (c + 1.0f);
+					color |= uint32_t(int32_t(color_tonemapped) << (j << 3));
 				}
 
 				dst_line[x]= color;
