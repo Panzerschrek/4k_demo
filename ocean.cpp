@@ -80,8 +80,8 @@ constexpr uint32_t cloud_texture_size_log2 = 10;
 constexpr uint32_t cloud_texture_size = 1 << cloud_texture_size_log2;
 constexpr uint32_t cloud_texture_size_mask = cloud_texture_size - 1;
 
-constexpr uint32_t window_width= 768;
-constexpr uint32_t window_height= 768;
+constexpr uint32_t window_width= 800;
+constexpr uint32_t window_height= 600;
 
 struct DemoData
 {
@@ -178,7 +178,7 @@ int main()
 
 			for(uint32_t x = 0; x < window_width; ++x)
 			{
-				const int32_t tex_v= int32_t(line_scale * (float(x) - float(window_height / 2u))) & cloud_texture_size_mask;
+				const int32_t tex_v= int32_t(line_scale * (float(x) - float(window_width / 2u))) & cloud_texture_size_mask;
 
 				const int32_t sun_delta[2]{ int32_t(x) - int32_t(sun_center[0]), int32_t(y) - int32_t(sun_center[1]) };
 				
