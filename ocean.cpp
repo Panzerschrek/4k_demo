@@ -100,18 +100,31 @@ int main()
 	static constexpr float sky_fog[3]{ 240.0f, 200.0f, 200.0f };
 	static constexpr float clouds_color[3]{ 240.0f, 240.0f, 240.0f };
 
+	LARGE_INTEGER start_ticks;
+	QueryPerformanceCounter(&start_ticks);
+
+	LARGE_INTEGER ticks_per_second;
+	QueryPerformanceFrequency(&ticks_per_second);
+
 	while(true)
 	{
 		window.ProcessMessages();
 
+		LARGE_INTEGER now;
+		QueryPerformanceCounter(&now);
+		const float time = float(uint32_t(now.QuadPart - start_ticks.QuadPart)) / float(uint32_t(ticks_per_second.QuadPart));
+
+		const float move_speed = 40.0f;
+
 		const float height= 256.0f;
+		const float distance= time * move_speed;
 
 		for(uint32_t y= 0; y < window.GetHeight() / 2u - 20; ++y)
 		{
-			const float tex_y= float(height) * float(window.GetHeight() / 2.0f) / (float(window.GetHeight() / 2u) - float(y));
-			const float line_scale= tex_y / float(window.GetWidth() / 2u);
+			const float line_distance= float(height) * float(window.GetHeight() / 2.0f) / (float(window.GetHeight() / 2u) - float(y));
+			const float line_scale= line_distance / float(window.GetWidth() / 2u);
 
-			const uint32_t tex_v= uint32_t(tex_y);
+			const uint32_t tex_v= uint32_t(line_distance + distance);
 
 			const auto src_line_texels= clouds_data->alpha + (tex_v & uint32_t(cloud_texture_size_mask)) * cloud_texture_size;
 
