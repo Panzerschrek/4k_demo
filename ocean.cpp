@@ -133,6 +133,7 @@ int main()
 	static constexpr float sky_color[3]{ 8.4f, 3.0f, 3.0f };
 	static constexpr float clouds_color[3]{ 7.4f, 7.4f, 7.4f };
 	static constexpr float sun_color[3]{ 5.0f, 10.0f, 40.0f };
+	static constexpr float horizon_color[3]{ 1.0f, 4.0f, 20.0f };
 
 	LARGE_INTEGER start_ticks;
 	QueryPerformanceCounter(&start_ticks);
@@ -157,7 +158,8 @@ int main()
 		const uint32_t sun_center[2]{ window.GetWidth() / 2u, window.GetHeight() / 2u - 2 * sun_radius };
 
 		// Draw sky.
-		const auto clouds_end_y= window.GetHeight() / 2u - 10;
+		const uint32_t horizon_offset= 5u;
+		const auto clouds_end_y= window.GetHeight() / 2u - horizon_offset;
 		for(uint32_t y= 0; y < clouds_end_y; ++y)
 		{
 			const float line_distance= float(height) * float(window.GetHeight() / 2.0f) / (float(window.GetHeight() / 2u) - float(y));
@@ -200,7 +202,7 @@ int main()
 		CalculateBlurKernel(blur_kernel_radius_vertical, blur_kernel_vertical);
 
 		// Copy sky to water with blur.
-		for(uint32_t y = window.GetHeight() / 2u + 10; y < window.GetHeight(); ++y)
+		for(uint32_t y = window.GetHeight() / 2u + horizon_offset; y < window.GetHeight(); ++y)
 		{
 			const auto src_y = int32_t(window_height - 1 - y) - blur_kernel_radius_vertical;
 			const auto dst_line = demo_data->colors_temp_buffers[1] + y * window_width;
@@ -227,7 +229,7 @@ int main()
 		CalculateBlurKernel(blur_kernel_radius_horizontal, blur_kernel_horizontal);
 
 		// Perform second blur for water.
-		for(uint32_t y = window.GetHeight() / 2u + 10; y < window.GetHeight(); ++y)
+		for(uint32_t y = window.GetHeight() / 2u + horizon_offset; y < window.GetHeight(); ++y)
 		{
 			const auto src_line= demo_data->colors_temp_buffers[1] + y * window_width;
 			const auto dst_line = demo_data->colors_temp_buffers[0] + y * window_width;
@@ -246,6 +248,14 @@ int main()
 				for (uint32_t j = 0; j < 3; ++j)
 					dst_line[x][j] = avg_color[j];
 			}
+		}
+
+		// Fill horizon span.
+		for(uint32_t y= window.GetHeight() / 2u - horizon_offset; y < window.GetHeight() / 2u + horizon_offset; ++y)
+		{
+			const auto dst_line= demo_data->colors_temp_buffers[0] + y * window_width;
+			for(uint32_t x = 0; x < window.GetWidth(); ++x)
+				dst_line[x]= {horizon_color[0], horizon_color[1], horizon_color[2]};
 		}
 
 		for(uint32_t y = 0; y < window.GetHeight(); ++y)
