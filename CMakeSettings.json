@@ -15,6 +15,11 @@
                     "name": "U_COMPILER",
                     "value": "C:/Users/user/Documents/Projects/other/U-00DC-Sprache/build-release-msvc-ninja/compiler0/Compiler.exe",
                     "type": "STRING"
+                },
+                {
+                    "name": "U_CPP_HEADER_CONVERTER",
+                    "value": "C:/Users/user/Documents/Projects/other/U-00DC-Sprache/build-release-msvc-ninja/cpp_header_converter/CppHeaderConverter.exe",
+                    "type": "STRING"
                 }
             ]
         },
@@ -44,6 +49,11 @@
                 {
                     "name": "U_COMPILER",
                     "value": "C:/Users/user/Documents/Projects/other/U-00DC-Sprache/build-release-msvc-ninja/compiler0/Compiler.exe",
+                    "type": "STRING"
+                },
+                {
+                    "name": "U_CPP_HEADER_CONVERTER",
+                    "value": "C:/Users/user/Documents/Projects/other/U-00DC-Sprache/build-release-msvc-ninja/cpp_header_converter/CppHeaderConverter.exe",
                     "type": "STRING"
                 }
             ]
