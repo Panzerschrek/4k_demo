@@ -74,6 +74,7 @@ int main()
 	// Using stack array requires stack checking function.
 	const auto demo_data = reinterpret_cast<DemoData*>(VirtualAlloc(nullptr, sizeof(DemoData), MEM_COMMIT, PAGE_READWRITE));
 
+	// Calculate clouds texture based on octave noise.
 	for(uint32_t y = 0; y < cloud_texture_size; ++y)
 	for(uint32_t x = 0; x < cloud_texture_size; ++x)
 	{
@@ -123,7 +124,7 @@ int main()
 		QueryPerformanceCounter(&now);
 		const float time = float(uint32_t(now.QuadPart - start_ticks.QuadPart)) / float(uint32_t(ticks_per_second.QuadPart));
 
-		const float move_speed = 40.0f;
+		constexpr float move_speed = 40.0f;
 
 		constexpr float camera_height= 256.0f;
 		const float camera_distance= time * move_speed;
@@ -132,9 +133,10 @@ int main()
 		constexpr uint32_t sun_radius_max = 36;
 		constexpr uint32_t sun_center[2]{ window_width / 2u, window_height / 2u - sun_radius_max * 3u / 2u };
 
+		constexpr uint32_t horizon_offset = 10u;
+		constexpr uint32_t clouds_end_y = window_height / 2u - horizon_offset;
+
 		// Draw sky.
-		constexpr uint32_t horizon_offset= 10u;
-		constexpr auto clouds_end_y= window_height / 2u - horizon_offset;
 		for(uint32_t y= 0; y < clouds_end_y; ++y)
 		{
 			const float y_f= float(int32_t(y));
@@ -150,7 +152,6 @@ int main()
 			const uint32_t tex_v= int32_t(line_distance + camera_distance);
 
 			const auto src_line_texels= demo_data->clouds_texture + (tex_v & uint32_t(cloud_texture_size_mask)) * cloud_texture_size;
-
 			const auto dst_line = demo_data->colors_temp_buffers[0] + y * window_width;
 
 			for(uint32_t x = 0; x < window_width; ++x)
@@ -174,7 +175,7 @@ int main()
 				const float one_minus_alpha = 1.0f - alpha;
 				const float clouds_brightness_modulate= 1.0f - 0.55f * alpha;
 
-				for (uint32_t j = 0; j < 3; ++j)
+				for(uint32_t j = 0; j < 3; ++j)
 				{
 					const float own_color= sun_factor * sun_color[j] + one_minus_sun_factor * sky_color[j];
 					const float color_mixed = own_color * one_minus_alpha + clouds_color[j] * clouds_brightness_modulate * alpha;
@@ -197,7 +198,7 @@ int main()
 			const auto dst_line = demo_data->colors_temp_buffers[1] + y * window_width;
 
 			constexpr float blur_factor= 0.92f;
-			constexpr float blur_facrtor_minus_one= 1.0f - blur_factor;
+			constexpr float blur_factor_minus_one= 1.0f - blur_factor;
 
 			// Blur left to right.
 			ColorHDR blurreed_color= src_line[0];
@@ -205,7 +206,7 @@ int main()
 			{
 				for(uint32_t j= 0; j < 3; ++j)
 				{
-					blurreed_color[j]= blurreed_color[j] * blur_factor + src_line[x][j] * blur_facrtor_minus_one;
+					blurreed_color[j]= blurreed_color[j] * blur_factor + src_line[x][j] * blur_factor_minus_one;
 					dst_line[x][j] = blurreed_color[j] * half_horizon_factor;
 				}
 			}
@@ -215,9 +216,9 @@ int main()
 			for(uint32_t x = 0; x < window_width; ++x)
 			{
 				const uint32_t x1= window_width - 1u - x;
-				for (uint32_t j = 0; j < 3; ++j)
+				for(uint32_t j = 0; j < 3; ++j)
 				{
-					blurreed_color[j] = blurreed_color[j] * blur_factor + src_line[x1][j] * blur_facrtor_minus_one;
+					blurreed_color[j] = blurreed_color[j] * blur_factor + src_line[x1][j] * blur_factor_minus_one;
 					dst_line[x1][j] += blurreed_color[j] * half_horizon_factor;
 				}
 			}
@@ -230,7 +231,7 @@ int main()
 			const auto dst_column = demo_data->colors_temp_buffers[0] + x;
 
 			constexpr float blur_factor = 0.97f;
-			constexpr float blur_facrtor_minus_one = 1.0f - blur_factor;
+			constexpr float blur_factor_minus_one = 1.0f - blur_factor;
 			constexpr float top_to_bottom_weight= 0.875f;
 			constexpr float bottom_to_top_weight= 1.0f - top_to_bottom_weight;
 
@@ -239,9 +240,9 @@ int main()
 			for(uint32_t y = water_y_start; y < window_height; ++y)
 			{
 				const uint32_t y_offset= y * window_width;
-				for (uint32_t j = 0; j < 3; ++j)
+				for(uint32_t j = 0; j < 3; ++j)
 				{
-					blurreed_color[j] = blurreed_color[j] * blur_factor + src_column[y_offset][j] * blur_facrtor_minus_one;
+					blurreed_color[j] = blurreed_color[j] * blur_factor + src_column[y_offset][j] * blur_factor_minus_one;
 					dst_column[y_offset][j] = blurreed_color[j] * top_to_bottom_weight;
 				}
 			}
@@ -251,9 +252,9 @@ int main()
 			for(uint32_t y = window_height - 1; y >= water_y_start; --y)
 			{
 				const uint32_t y_offset = y * window_width;
-				for (uint32_t j = 0; j < 3; ++j)
+				for(uint32_t j = 0; j < 3; ++j)
 				{
-					blurreed_color[j] = blurreed_color[j] * blur_factor + src_column[y_offset][j] * blur_facrtor_minus_one;
+					blurreed_color[j] = blurreed_color[j] * blur_factor + src_column[y_offset][j] * blur_factor_minus_one;
 					dst_column[y_offset][j] += blurreed_color[j] * bottom_to_top_weight;
 				}
 			}
@@ -267,6 +268,7 @@ int main()
 				dst_line[x]= horizon_color;
 		}
 
+		// Fill result color buffer and perform tonemapping.
 		for(uint32_t y = 0; y < window_height; ++y)
 		{
 			const auto src_line= demo_data->colors_temp_buffers[0] + y * window_width;
@@ -274,11 +276,11 @@ int main()
 			for(uint32_t x = 0; x < window_width; ++x)
 			{
 				DrawableWindow::PixelType color = 0x000000;
-				for (uint32_t j = 0; j < 3; ++j)
+				for(uint32_t j = 0; j < 3; ++j)
 				{
-					const float c= src_line[x][j];
-					const float color_tonemapped= 255.0f * c / (c + 1.0f);
-					color |= uint32_t(int32_t(color_tonemapped) << (j << 3));
+					const float component= src_line[x][j];
+					const float component_tonemapped= 255.0f * component / (component + 1.0f);
+					color |= uint32_t(int32_t(component_tonemapped) << (j << 3));
 				}
 
 				dst_line[x]= color;
@@ -286,5 +288,7 @@ int main()
 		}
 
 		window.Blit();
+
+		// Do not sleep here - run without any pause, because this demo is prety expensive to calculate.
 	}
 }
