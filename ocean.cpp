@@ -52,8 +52,8 @@ constexpr uint32_t cloud_texture_size_log2 = 10;
 constexpr uint32_t cloud_texture_size = 1 << cloud_texture_size_log2;
 constexpr uint32_t cloud_texture_size_mask = cloud_texture_size - 1;
 
-constexpr uint32_t window_width= 800;
-constexpr uint32_t window_height= 600;
+constexpr uint32_t window_width= 1280;
+constexpr uint32_t window_height= 720;
 
 using ColorHDR= std::array<float, 3>;
 
@@ -88,8 +88,8 @@ int main()
 
 		const float alpha= float(r) / (512u * 256u);
 
-		const float border_low= 0.55f;
-		const float border_height= 0.7f;
+		const float border_low= 0.5f;
+		const float border_height= 0.65f;
 
 		float alpha_corrected;
 		if( alpha <= border_low)
@@ -106,8 +106,8 @@ int main()
 
 	static constexpr ColorHDR sky_color{ 8.4f, 2.5f, 2.5f };
 	static constexpr ColorHDR clouds_color{ 8.4f, 8.4f, 8.4f };
-	static constexpr ColorHDR sun_color{ 10.0f, 20.0f, 90.0f };
-	static constexpr ColorHDR horizon_color{ 1.0f, 4.0f, 20.0f };
+	static constexpr ColorHDR sun_color{ 25.0f, 100.0f, 1000.0f };
+	static constexpr ColorHDR horizon_color{ 0.25f, 1.1f, 6.5f };
 
 	LARGE_INTEGER start_ticks;
 	QueryPerformanceCounter(&start_ticks);
@@ -128,7 +128,7 @@ int main()
 		constexpr float camera_height= 256.0f;
 		const float camera_distance= time * move_speed;
 
-		constexpr uint32_t sun_radius= 24;
+		constexpr uint32_t sun_radius= 32;
 		constexpr uint32_t sun_center[2]{ window_width / 2u, window_height / 2u - sun_radius * 3u / 2u };
 
 		// Draw sky.
@@ -188,7 +188,7 @@ int main()
 			const auto src_line = demo_data->colors_temp_buffers[0] + (window_height - 1u - y) * window_width;
 			const auto dst_line = demo_data->colors_temp_buffers[1] + y * window_width;
 
-			constexpr float blur_factor= 0.9f;
+			constexpr float blur_factor= 0.92f;
 			constexpr float blur_facrtor_minus_one= 1.0f - blur_factor;
 
 			// Blur left to right.
@@ -221,9 +221,9 @@ int main()
 			const auto src_column = demo_data->colors_temp_buffers[1] + x;
 			const auto dst_column = demo_data->colors_temp_buffers[0] + x;
 
-			constexpr float blur_factor = 0.965f;
+			constexpr float blur_factor = 0.97f;
 			constexpr float blur_facrtor_minus_one = 1.0f - blur_factor;
-			constexpr float top_to_bottom_weight= 0.75f;
+			constexpr float top_to_bottom_weight= 0.875f;
 			constexpr float bottom_to_top_weight= 1.0f - top_to_bottom_weight;
 
 			// Blur top to bottom.
