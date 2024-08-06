@@ -84,3 +84,5 @@ target_link_libraries(sound_out PRIVATE winmm.lib)
 
 add_executable(orbital_resonance WIN32 orbital_resonance.cpp)
 target_link_libraries(orbital_resonance PRIVATE winmm.lib)
+
+add_executable(ocean WIN32 ocean.cpp)
