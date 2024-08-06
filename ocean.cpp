@@ -48,29 +48,6 @@ static inline uint32_t InterpolatedNoise(const uint32_t x, const uint32_t y, con
 	return uint32_t((interp_x[1] * dx + interp_x[0] * (step - dx)) >> (k + k));
 }
 
-// Gaussian approaximation for range [-3.5;3.5].
-// Result requires normalization.
-static inline float GaussianFunction(const float x)
-{
-	const float minus_half_x2= -0.5f * x * x;
-	float factor= 2.506628274631000502415765284811f; // sqrt(Tau)
-	float res= 0.0f;
-	for( int32_t i= 0; i < 19; ++i)
-	{
-		res+= factor;
-		factor*= minus_half_x2 / float(i + 1);
-	}
-
-	return res;
-}
-
-static void CalculateBlurKernel(const int32_t radius, float* const out_kernel)
-{
-	const float scale_factor= 1.0f / (float(radius * 2 + 1));
-	for(int32_t dx = -radius; dx <= radius; ++dx)
-		out_kernel[dx + radius] = scale_factor * GaussianFunction(float(dx) / float(radius / 3.0f));
-}
-
 constexpr uint32_t cloud_texture_size_log2 = 10;
 constexpr uint32_t cloud_texture_size = 1 << cloud_texture_size_log2;
 constexpr uint32_t cloud_texture_size_mask = cloud_texture_size - 1;
@@ -199,65 +176,83 @@ int main()
 			}
 		}
 
-		constexpr int32_t blur_kernel_radius_vertical= 20;
-		constexpr int32_t blur_kernel_size_vertical= blur_kernel_radius_vertical * 2 + 1;
-		float blur_kernel_vertical[blur_kernel_size_vertical];
-		CalculateBlurKernel(blur_kernel_radius_vertical, blur_kernel_vertical);
+		constexpr uint32_t water_y_start = window_height / 2u + horizon_offset;
 
-		// Copy sky to water with blur.
-		for(uint32_t y = window_height / 2u + horizon_offset; y < window_height; ++y)
+		// Copy sky to water with horizontal blur.
+		for(uint32_t y = water_y_start; y < window_height; ++y)
 		{
 			// Make reflection at the screen bottom a little bit darker.
 			const float horizon_factor = float(int32_t(y)) * ( -1.0f / float(window_height) ) + 1.5f;
+			const float half_horizon_factor= 0.5f * horizon_factor;
 
-			const auto src_y = int32_t(window_height - 1 - y) - blur_kernel_radius_vertical;
+			const auto src_line = demo_data->colors_temp_buffers[0] + (window_height - 1u - y) * window_width;
 			const auto dst_line = demo_data->colors_temp_buffers[1] + y * window_width;
+
+			constexpr float blur_factor= 0.9f;
+			constexpr float blur_facrtor_minus_one= 1.0f - blur_factor;
+
+			// Blur left to right.
+			ColorHDR blurreed_color= src_line[0];
 			for(uint32_t x = 0; x < window_width; ++x)
 			{
-				ColorHDR avg_color{0.0f, 0.0f, 0.0f};
-				for(int32_t dy= 0; dy < blur_kernel_size_vertical; ++dy)
+				for(uint32_t j= 0; j < 3; ++j)
 				{
-					const int32_t src_blur_y= std::max(0, std::min(int32_t(src_y) + dy, int32_t(clouds_end_y) - 1));
-					const auto& src_color= demo_data->colors_temp_buffers[0][x + src_blur_y * int32_t(window_width)];
-
-					const float weight= blur_kernel_vertical[dy];
-					for(uint32_t j= 0; j < 3; ++j)
-						avg_color[j]+= weight * src_color[j];
+					blurreed_color[j]= blurreed_color[j] * blur_factor + src_line[x][j] * blur_facrtor_minus_one;
+					dst_line[x][j] = blurreed_color[j] * half_horizon_factor;
 				}
-				for(uint32_t j = 0; j < 3; ++j)
-					dst_line[x][j]= avg_color[j] * horizon_factor;
+			}
+
+			// Blur right to left and add to previous blur.
+			blurreed_color= src_line[window_width - 1];
+			for(uint32_t x = 0; x < window_width; ++x)
+			{
+				const uint32_t x1= window_width - 1u - x;
+				for (uint32_t j = 0; j < 3; ++j)
+				{
+					blurreed_color[j] = blurreed_color[j] * blur_factor + src_line[x1][j] * blur_facrtor_minus_one;
+					dst_line[x1][j] += blurreed_color[j] * half_horizon_factor;
+				}
 			}
 		}
 
-		constexpr int32_t blur_kernel_radius_horizontal = 10;
-		constexpr int32_t blur_kernel_size_horizontal = blur_kernel_radius_horizontal * 2 + 1;
-		float blur_kernel_horizontal[blur_kernel_size_horizontal];
-		CalculateBlurKernel(blur_kernel_radius_horizontal, blur_kernel_horizontal);
-
-		// Perform second blur for water.
-		for(uint32_t y = window_height / 2u + horizon_offset; y < window_height; ++y)
+		// Perform vertical blur for water.
+		for(uint32_t x = 0; x < window_width; ++x)
 		{
-			const auto src_line= demo_data->colors_temp_buffers[1] + y * window_width;
-			const auto dst_line = demo_data->colors_temp_buffers[0] + y * window_width;
-			for (uint32_t x = 0; x < window_width; ++x)
-			{
-				ColorHDR avg_color{ 0.0f, 0.0f, 0.0f };
-				for (int32_t dx = 0; dx < blur_kernel_size_horizontal; ++dx)
-				{
-					const int32_t src_blur_x = std::max(0, std::min(int32_t(x + dx) - blur_kernel_radius_horizontal, int32_t(window_width) - 1));
-					const auto& src_color = src_line[src_blur_x];
+			const auto src_column = demo_data->colors_temp_buffers[1] + x;
+			const auto dst_column = demo_data->colors_temp_buffers[0] + x;
 
-					const float weight = blur_kernel_horizontal[dx];
-					for (uint32_t j = 0; j < 3; ++j)
-						avg_color[j] += weight * src_color[j];
-				}
+			constexpr float blur_factor = 0.965f;
+			constexpr float blur_facrtor_minus_one = 1.0f - blur_factor;
+			constexpr float top_to_bottom_weight= 0.75f;
+			constexpr float bottom_to_top_weight= 1.0f - top_to_bottom_weight;
+
+			// Blur top to bottom.
+			ColorHDR blurreed_color = src_column[water_y_start * window_width];
+			for(uint32_t y = water_y_start; y < window_height; ++y)
+			{
+				const uint32_t y_offset= y * window_width;
 				for (uint32_t j = 0; j < 3; ++j)
-					dst_line[x][j] = avg_color[j];
+				{
+					blurreed_color[j] = blurreed_color[j] * blur_factor + src_column[y_offset][j] * blur_facrtor_minus_one;
+					dst_column[y_offset][j] = blurreed_color[j] * top_to_bottom_weight;
+				}
+			}
+			
+			// Blur bottom to top and add to previous blur.
+			blurreed_color = src_column[(window_height - 1) * window_width];
+			for(uint32_t y = window_height - 1; y >= water_y_start; --y)
+			{
+				const uint32_t y_offset = y * window_width;
+				for (uint32_t j = 0; j < 3; ++j)
+				{
+					blurreed_color[j] = blurreed_color[j] * blur_factor + src_column[y_offset][j] * blur_facrtor_minus_one;
+					dst_column[y_offset][j] += blurreed_color[j] * bottom_to_top_weight;
+				}
 			}
 		}
 
 		// Fill horizon span.
-		for(uint32_t y= window_height / 2u - horizon_offset; y < window_height / 2u + horizon_offset; ++y)
+		for(uint32_t y= clouds_end_y; y < water_y_start; ++y)
 		{
 			const auto dst_line= demo_data->colors_temp_buffers[0] + y * window_width;
 			for(uint32_t x = 0; x < window_width; ++x)
