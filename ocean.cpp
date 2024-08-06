@@ -128,8 +128,9 @@ int main()
 		constexpr float camera_height= 256.0f;
 		const float camera_distance= time * move_speed;
 
-		constexpr uint32_t sun_radius= 32;
-		constexpr uint32_t sun_center[2]{ window_width / 2u, window_height / 2u - sun_radius * 3u / 2u };
+		constexpr uint32_t sun_radius_min = 20;
+		constexpr uint32_t sun_radius_max = 36;
+		constexpr uint32_t sun_center[2]{ window_width / 2u, window_height / 2u - sun_radius_max * 3u / 2u };
 
 		// Draw sky.
 		constexpr uint32_t horizon_offset= 10u;
@@ -158,11 +159,16 @@ int main()
 
 				const int32_t sun_delta[2]{ int32_t(x) - int32_t(sun_center[0]), int32_t(y) - int32_t(sun_center[1]) };
 				
-				const ColorHDR* own_color;
-				if(sun_delta[0] * sun_delta[0] + sun_delta[1] * sun_delta[1] <= sun_radius * sun_radius)
-					own_color= &sun_color;
+				float sun_factor;
+				const int32_t square_sun_center_distance = sun_delta[0] * sun_delta[0] + sun_delta[1] * sun_delta[1];
+				if(square_sun_center_distance <= sun_radius_min * sun_radius_min)
+					sun_factor= 1.0f;
+				else if(square_sun_center_distance >= sun_radius_max * sun_radius_max)
+					sun_factor= 0.0f;
 				else
-					own_color= &sky_color;
+					sun_factor= float(sun_radius_max * sun_radius_max - square_sun_center_distance) / float(sun_radius_max * sun_radius_max - sun_radius_min * sun_radius_min);
+
+				const float one_minus_sun_factor = 1.0f - sun_factor;
 
 				const float alpha= src_line_texels[tex_v];
 				const float one_minus_alpha = 1.0f - alpha;
@@ -170,7 +176,8 @@ int main()
 
 				for (uint32_t j = 0; j < 3; ++j)
 				{
-					const float color_mixed = (*own_color)[j] * one_minus_alpha + clouds_color[j] * clouds_brightness_modulate * alpha;
+					const float own_color= sun_factor * sun_color[j] + one_minus_sun_factor * sky_color[j];
+					const float color_mixed = own_color * one_minus_alpha + clouds_color[j] * clouds_brightness_modulate * alpha;
 					const float color_horizon_mixed= one_minus_horizon_factor * color_mixed + horizon_color[j] * horizon_factor;
 					dst_line[x][j]= color_horizon_mixed;
 				}
