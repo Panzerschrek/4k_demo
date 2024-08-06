@@ -105,7 +105,7 @@ int main()
 	DrawableWindow window("4k_ocean", window_width, window_height);
 
 	static constexpr ColorHDR sky_color{ 8.4f, 2.5f, 2.5f };
-	static constexpr ColorHDR clouds_color{ 8.4f, 8.4f, 8.4f };
+	static constexpr ColorHDR clouds_color{ 12.4f, 12.4f, 12.4f };
 	static constexpr ColorHDR sun_color{ 25.0f, 100.0f, 1000.0f };
 	static constexpr ColorHDR horizon_color{ 0.25f, 1.1f, 6.5f };
 
@@ -166,10 +166,11 @@ int main()
 
 				const float alpha= src_line_texels[tex_v];
 				const float one_minus_alpha = 1.0f - alpha;
+				const float clouds_brightness_modulate= 1.0f - 0.55f * alpha;
 
 				for (uint32_t j = 0; j < 3; ++j)
 				{
-					const float color_mixed = (*own_color)[j] * one_minus_alpha + clouds_color[j] * alpha;
+					const float color_mixed = (*own_color)[j] * one_minus_alpha + clouds_color[j] * clouds_brightness_modulate * alpha;
 					const float color_horizon_mixed= one_minus_horizon_factor * color_mixed + horizon_color[j] * horizon_factor;
 					dst_line[x][j]= color_horizon_mixed;
 				}
