@@ -11,7 +11,7 @@ jobs:
         submodules: recursive
     - name: build project
       run: ./ci/build_release_windows_64.bat
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: 4k_executables_windows_x64
         path: build_dir/*.exe
@@ -23,7 +23,7 @@ jobs:
         submodules: recursive
     - name: build project
       run: ./ci/build_release_windows_32.bat
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: 4k_executables_windows_x86
         path: build_dir/*.exe
