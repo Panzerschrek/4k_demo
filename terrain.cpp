@@ -152,7 +152,7 @@ int main()
 			(adjacent_cells[0][2] + adjacent_cells[1][2] + adjacent_cells[2][2]) -
 			(adjacent_cells[0][0] + adjacent_cells[1][0] + adjacent_cells[2][0]);
 
-		const float normal[3]{ -dh_dx, -dh_dy, 3.0f};
+		const float normal[3]{ -dh_dx, -dh_dy, 6.0f };
 
 		const float angle_cos =
 			(normal[0] * sun_dir[0] + normal[1] * sun_dir[1] + normal[2] * sun_dir[2]) *
